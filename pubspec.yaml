@@ -10,6 +10,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+
+  dio: ^5.4.0                      # HTTP client
+  shared_preferences: ^2.2.2       # Simpan token lokal
+  flutter_secure_storage: ^9.0.0   # Simpan token lebih aman (opsional)
   cupertino_icons: ^1.0.6
   google_fonts: ^6.1.0
   cached_network_image: ^3.3.1

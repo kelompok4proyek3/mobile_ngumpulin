@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:ngumpul_in/features/home/screens/main_screen.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/constants/dummy_data.dart';
 import '../../auth/screens/login_screen.dart';
+// import '../../../core/guards/auth_guard.dart';
+import '../../auth/services/auth_api_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -203,11 +207,21 @@ class ProfileScreen extends StatelessWidget {
                     labelColor: AppColors.error,
                     iconColor: AppColors.error,
                     iconBgColor: AppColors.error.withOpacity(0.1),
-                    onTap: () {
+                    onTap: () async {
+                      // 1. Panggil API logout
+                      final authService = AuthApiService();
+                      await authService.logout();
+
+                      // 2. Hapus token lokal
+                      final prefs = await SharedPreferences.getInstance();
+                      await prefs.clear(); // atau prefs.remove('auth_token') kalau mau spesifik
+
+                      if (!context.mounted) return;
+
+                      // 3. Redirect ke login & hapus semua history
                       Navigator.pushAndRemoveUntil(
                         context,
-                        MaterialPageRoute(
-                            builder: (_) => const LoginScreen()),
+                        MaterialPageRoute(builder: (_) => const MainScreen()),
                         (_) => false,
                       );
                     },

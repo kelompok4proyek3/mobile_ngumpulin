@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ngumpul_in/features/home/screens/main_screen.dart';
 import '../auth/screens/login_screen.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_strings.dart';
@@ -130,7 +131,7 @@ class _SplashScreenState extends State<SplashScreen>
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const LoginScreen(),
+                        builder: (_) => const MainScreen(),
                       ),
                     );
                   },

@@ -3,6 +3,9 @@ import '../../onboarding/screens/preference_screen.dart';
 import '../../home/screens/main_screen.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
+import '../services/auth_api_service.dart';
+import '../../home/screens/main_screen.dart';
+import '../../../core/guards/auth_guard.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,11 +19,47 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
+  bool _isLoading = false;
+  final AuthApiService _authApiService = AuthApiService();
+
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleLogin() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Email dan password wajib diisi')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final result = await _authApiService.login(email, password);
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (result['success'] == true) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const AuthGuard(child: MainScreen())), // sesuaikan dengan halaman tujuan setelah login
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message'] ?? 'Login gagal'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -79,26 +118,26 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 28),
 
               // Google Button
-              OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => const PreferenceScreen()),
-                  );
-                },
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.textPrimary,
-                  side: const BorderSide(color: AppColors.divider),
-                  backgroundColor: AppColors.white,
-                ),
-                icon: const Text('G',
-                    style: TextStyle(
-                        color: Colors.red,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 18)),
-                label: const Text(AppStrings.masukDenganGoogle),
-              ),
+              // OutlinedButton.icon(
+              //   onPressed: () {
+              //     Navigator.pushReplacement(
+              //       context,
+              //       MaterialPageRoute(
+              //           builder: (_) => const MainScreen()),
+              //     );
+              //   },
+              //   style: OutlinedButton.styleFrom(
+              //     foregroundColor: AppColors.textPrimary,
+              //     side: const BorderSide(color: AppColors.divider),
+              //     backgroundColor: AppColors.white,
+              //   ),
+              //   icon: const Text('G',
+              //       style: TextStyle(
+              //           color: Colors.red,
+              //           fontWeight: FontWeight.w700,
+              //           fontSize: 18)),
+              //   label: const Text(AppStrings.masukDenganGoogle),
+              // ),
 
               const SizedBox(height: 20),
               Row(
@@ -217,16 +256,19 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 28),
-
+              
               ElevatedButton(
-                onPressed: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => const PreferenceScreen()),
-                  );
-                },
-                child: const Text(AppStrings.masukSekarang),
+                onPressed: _isLoading ? null : _handleLogin,
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text(AppStrings.masukSekarang),
               ),
 
               const SizedBox(height: 20),
