@@ -1,4 +1,4 @@
-// lib/core/models/spot__model.dart
+// lib/core/models/spot_model.dart
 
 class SpotModel {
   final int id;
@@ -33,20 +33,42 @@ class SpotModel {
 
   factory SpotModel.fromJson(Map<String, dynamic> json) {
     return SpotModel(
-      id:          json['id'],
-      namaSpot:    json['nama_spot'] ?? '',
-      alamat:      json['alamat'] ?? '',
-      lokasiLat:   (json['lokasi_lat'] as num?)?.toDouble(),
-      lokasiLng:   (json['lokasi_lng'] as num?)?.toDouble(),
-      jamBuka:     json['jam_buka'],
-      jamTutup:    json['jam_tutup'],
-      hargaRange:  json['harga_range'],
-      deskripsi:   json['deskripsi'],
-      avgRating:   (json['avg_rating'] as num?)?.toDouble() ?? 0.0,
-      reviewCount: json['review_count'] ?? 0,
-      isOpen:      json['is_open'] ?? true,
-      kategoris:   List<String>.from(json['kategoris'] ?? []),
+      id: json['id'] as int,
+      namaSpot: json['nama_spot']?.toString() ?? '',
+      alamat: json['alamat']?.toString() ?? '',
+      // Safe parse: handle String, int, double, atau null
+      lokasiLat: _toDouble(json['lokasi_lat']),
+      lokasiLng: _toDouble(json['lokasi_lng']),
+      jamBuka: json['jam_buka']?.toString(),
+      jamTutup: json['jam_tutup']?.toString(),
+      hargaRange: json['harga_range']?.toString(),
+      deskripsi: json['deskripsi']?.toString(),
+      avgRating: _toDouble(json['avg_rating']) ?? 0.0,
+      reviewCount: _toInt(json['review_count']) ?? 0,
+      isOpen: json['is_open'] == true || json['is_open'] == 1,
+      kategoris: (json['kategoris'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
     );
+  }
+
+  /// Parse apapun (String/int/double/null) jadi double?
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
+  /// Parse apapun (String/int/null) jadi int?
+  static int? _toInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
   }
 
   String get kategoriUtama =>

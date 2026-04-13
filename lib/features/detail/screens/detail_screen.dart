@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../models/spot_model.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
+import '../../mylist/services/saved_spot_api_service.dart';
 
 class DetailScreen extends StatefulWidget {
   final SpotModel spot;
@@ -13,6 +14,58 @@ class DetailScreen extends StatefulWidget {
 
 class _DetailScreenState extends State<DetailScreen> {
   bool _isSaved = false;
+  bool _isLoadingSave = false;
+  bool _isCheckingSaved = true;
+  final _savedSpotService = SavedSpotApiService();
+
+  @override
+  void initState() {
+    super.initState();
+    _checkSavedStatus();
+  }
+
+  Future<void> _checkSavedStatus() async {
+    final isSaved = await _savedSpotService.checkIsSaved(widget.spot.id);
+    if (mounted) {
+      setState(() {
+        _isSaved = isSaved;
+        _isCheckingSaved = false;
+      });
+    }
+  }
+
+  Future<void> _toggleSave() async {
+    if (_isLoadingSave) return;
+    setState(() => _isLoadingSave = true);
+
+    final result = _isSaved
+        ? await _savedSpotService.deleteSavedSpot(widget.spot.id)
+        : await _savedSpotService.saveSpot(widget.spot.id);
+
+    if (!mounted) return;
+
+    if (result['success'] == true) {
+      setState(() => _isSaved = !_isSaved);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_isSaved ? 'Spot disimpan ke daftar!' : 'Spot dihapus dari daftar.'),
+          backgroundColor: _isSaved ? AppColors.primary : AppColors.textSecondary,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message'] ?? 'Gagal, coba lagi.'),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+
+    setState(() => _isLoadingSave = false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +77,6 @@ class _DetailScreenState extends State<DetailScreen> {
       backgroundColor: const Color(0xFFF5F0EB),
       body: CustomScrollView(
         slivers: [
-          // App Bar with Image placeholder
           SliverAppBar(
             expandedHeight: 260,
             pinned: true,
@@ -36,13 +88,9 @@ class _DetailScreenState extends State<DetailScreen> {
                 decoration: BoxDecoration(
                   color: AppColors.white,
                   shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                        color: Colors.black.withOpacity(0.1), blurRadius: 8)
-                  ],
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8)],
                 ),
-                child: const Icon(Icons.arrow_back_ios_new_rounded,
-                    size: 16, color: AppColors.textPrimary),
+                child: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: AppColors.textPrimary),
               ),
             ),
             actions: [
@@ -54,13 +102,9 @@ class _DetailScreenState extends State<DetailScreen> {
                   decoration: BoxDecoration(
                     color: AppColors.white,
                     shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                          color: Colors.black.withOpacity(0.1), blurRadius: 8)
-                    ],
+                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8)],
                   ),
-                  child: const Icon(Icons.share_outlined,
-                      size: 16, color: AppColors.textPrimary),
+                  child: const Icon(Icons.share_outlined, size: 16, color: AppColors.textPrimary),
                 ),
               ),
             ],
@@ -70,8 +114,7 @@ class _DetailScreenState extends State<DetailScreen> {
               background: Container(
                 color: AppColors.primaryLight,
                 child: const Center(
-                  child: Icon(Icons.storefront_rounded,
-                      size: 80, color: AppColors.primary),
+                  child: Icon(Icons.storefront_rounded, size: 80, color: AppColors.primary),
                 ),
               ),
             ),
@@ -100,38 +143,19 @@ class _DetailScreenState extends State<DetailScreen> {
                             Expanded(
                               child: Text(
                                 spot.namaSpot,
-                                style: const TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.textPrimary,
-                                ),
+                                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
                               ),
                             ),
                             Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryLight,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(12)),
                               child: Column(
                                 children: [
                                   Text(
                                     spot.avgRating.toStringAsFixed(1),
-                                    style: const TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w800,
-                                      color: AppColors.primary,
-                                    ),
+                                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.primary),
                                   ),
-                                  const Text(
-                                    'RATING',
-                                    style: TextStyle(
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.primary,
-                                    ),
-                                  ),
+                                  const Text('RATING', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: AppColors.primary)),
                                 ],
                               ),
                             ),
@@ -140,34 +164,18 @@ class _DetailScreenState extends State<DetailScreen> {
                         const SizedBox(height: 6),
                         Text(
                           '${spot.kategoriUtama} • ${spot.isOpen ? AppStrings.terbuka : AppStrings.tutup}',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w500,
-                          ),
+                          style: const TextStyle(fontSize: 13, color: AppColors.primary, fontWeight: FontWeight.w500),
                         ),
                         const SizedBox(height: 10),
                         Row(
                           children: [
-                            const Icon(Icons.payments_outlined,
-                                size: 14, color: AppColors.textHint),
+                            const Icon(Icons.payments_outlined, size: 14, color: AppColors.textHint),
                             const SizedBox(width: 6),
-                            Text(
-                              spot.hargaRange ?? '-',
-                              style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.textSecondary),
-                            ),
+                            Text(spot.hargaRange ?? '-', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                             const SizedBox(width: 16),
-                            const Icon(Icons.access_time_outlined,
-                                size: 14, color: AppColors.textHint),
+                            const Icon(Icons.access_time_outlined, size: 14, color: AppColors.textHint),
                             const SizedBox(width: 6),
-                            Text(
-                              '${AppStrings.buka} ${spot.jamOperasional}',
-                              style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.textSecondary),
-                            ),
+                            Text('${AppStrings.buka} ${spot.jamOperasional}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                           ],
                         ),
                         const SizedBox(height: 16),
@@ -175,39 +183,36 @@ class _DetailScreenState extends State<DetailScreen> {
                           children: [
                             Expanded(
                               child: ElevatedButton.icon(
-                                onPressed: () =>
-                                    setState(() => _isSaved = !_isSaved),
+                                // Disable saat masih cek status atau sedang proses
+                                onPressed: (_isCheckingSaved || _isLoadingSave) ? null : _toggleSave,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: _isSaved
-                                      ? AppColors.primary
-                                      : AppColors.primaryLight,
-                                  foregroundColor: _isSaved
-                                      ? Colors.white
-                                      : AppColors.primary,
+                                  backgroundColor: _isSaved ? AppColors.primary : AppColors.primaryLight,
+                                  foregroundColor: _isSaved ? Colors.white : AppColors.primary,
                                   elevation: 0,
                                   minimumSize: const Size(0, 44),
                                 ),
-                                icon: Icon(
-                                  _isSaved
-                                      ? Icons.bookmark_rounded
-                                      : Icons.bookmark_border_rounded,
-                                  size: 16,
+                                icon: (_isCheckingSaved || _isLoadingSave)
+                                    ? SizedBox(
+                                        width: 14, height: 14,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: _isSaved ? Colors.white : AppColors.primary,
+                                        ),
+                                      )
+                                    : Icon(_isSaved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded, size: 16),
+                                label: Text(
+                                  _isCheckingSaved ? 'Memuat...' : (_isSaved ? 'Tersimpan' : AppStrings.simpanKeList),
+                                  style: const TextStyle(fontSize: 13),
                                 ),
-                                label: const Text(AppStrings.simpanKeList,
-                                    style: TextStyle(fontSize: 13)),
                               ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: OutlinedButton.icon(
                                 onPressed: () => _showRatingDialog(),
-                                style: OutlinedButton.styleFrom(
-                                  minimumSize: const Size(0, 44),
-                                ),
-                                icon: const Icon(Icons.star_border_rounded,
-                                    size: 16),
-                                label: const Text(AppStrings.beriRating,
-                                    style: TextStyle(fontSize: 13)),
+                                style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
+                                icon: const Icon(Icons.star_border_rounded, size: 16),
+                                label: const Text(AppStrings.beriRating, style: TextStyle(fontSize: 13)),
                               ),
                             ),
                           ],
@@ -218,39 +223,20 @@ class _DetailScreenState extends State<DetailScreen> {
 
                   // Location Card
                   Container(
-                    margin: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 0),
+                    margin: const EdgeInsets.symmetric(horizontal: 16),
                     padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.white,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
+                    decoration: BoxDecoration(color: AppColors.white, borderRadius: BorderRadius.circular(20)),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          AppStrings.lokasi,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
+                        const Text(AppStrings.lokasi, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
                         const SizedBox(height: 10),
                         Row(
                           children: [
-                            const Icon(Icons.location_on_outlined,
-                                size: 16, color: AppColors.primary),
+                            const Icon(Icons.location_on_outlined, size: 16, color: AppColors.primary),
                             const SizedBox(width: 6),
                             Expanded(
-                              child: Text(
-                                spot.alamat,
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  color: AppColors.textSecondary,
-                                  height: 1.4,
-                                ),
-                              ),
+                              child: Text(spot.alamat, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4)),
                             ),
                           ],
                         ),
@@ -260,40 +246,19 @@ class _DetailScreenState extends State<DetailScreen> {
                           child: Stack(
                             children: [
                               Container(
-                                height: 140,
-                                color: const Color(0xFFE5E0D8),
-                                child: Center(
-                                  child: Icon(
-                                    Icons.map_outlined,
-                                    size: 48,
-                                    color: AppColors.textHint.withOpacity(0.5),
-                                  ),
-                                ),
+                                height: 140, color: const Color(0xFFE5E0D8),
+                                child: Center(child: Icon(Icons.map_outlined, size: 48, color: AppColors.textHint.withOpacity(0.5))),
                               ),
                               Positioned(
-                                bottom: 12,
-                                right: 12,
+                                bottom: 12, right: 12,
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 14, vertical: 8),
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                                   decoration: BoxDecoration(
                                     color: AppColors.white,
                                     borderRadius: BorderRadius.circular(20),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.1),
-                                        blurRadius: 8,
-                                      ),
-                                    ],
+                                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8)],
                                   ),
-                                  child: const Text(
-                                    AppStrings.bukaGoogleMaps,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.textPrimary,
-                                    ),
-                                  ),
+                                  child: const Text(AppStrings.bukaGoogleMaps, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
                                 ),
                               ),
                             ],
@@ -309,21 +274,11 @@ class _DetailScreenState extends State<DetailScreen> {
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 16),
                     padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.white,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
+                    decoration: BoxDecoration(color: AppColors.white, borderRadius: BorderRadius.circular(20)),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          AppStrings.ulasanPengguna,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
+                        const Text(AppStrings.ulasanPengguna, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
                         const SizedBox(height: 16),
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
@@ -332,34 +287,18 @@ class _DetailScreenState extends State<DetailScreen> {
                               children: [
                                 Text(
                                   spot.avgRating.toStringAsFixed(1),
-                                  style: const TextStyle(
-                                    fontSize: 52,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.primary,
-                                    height: 1,
-                                  ),
+                                  style: const TextStyle(fontSize: 52, fontWeight: FontWeight.w800, color: AppColors.primary, height: 1),
                                 ),
                                 Row(
-                                  children: List.generate(
-                                    5,
-                                    (i) => Icon(
-                                      i < spot.avgRating.floor()
-                                          ? Icons.star_rounded
-                                          : i < spot.avgRating
-                                              ? Icons.star_half_rounded
-                                              : Icons.star_outline_rounded,
-                                      size: 16,
-                                      color: AppColors.star,
-                                    ),
-                                  ),
+                                  children: List.generate(5, (i) => Icon(
+                                    i < spot.avgRating.floor() ? Icons.star_rounded
+                                        : i < spot.avgRating ? Icons.star_half_rounded
+                                        : Icons.star_outline_rounded,
+                                    size: 16, color: AppColors.star,
+                                  )),
                                 ),
                                 const SizedBox(height: 4),
-                                Text(
-                                  'Berdasarkan ${spot.reviewCount} ulasan',
-                                  style: const TextStyle(
-                                      fontSize: 10,
-                                      color: AppColors.textHint),
-                                ),
+                                Text('Berdasarkan ${spot.reviewCount} ulasan', style: const TextStyle(fontSize: 10, color: AppColors.textHint)),
                               ],
                             ),
                             const SizedBox(width: 20),
@@ -370,26 +309,18 @@ class _DetailScreenState extends State<DetailScreen> {
                                   final count = ratingCounts[i];
                                   final pct = count / totalRatings;
                                   return Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 2),
+                                    padding: const EdgeInsets.symmetric(vertical: 2),
                                     child: Row(
                                       children: [
-                                        Text('$starNum',
-                                            style: const TextStyle(
-                                                fontSize: 11,
-                                                color: AppColors.textHint)),
+                                        Text('$starNum', style: const TextStyle(fontSize: 11, color: AppColors.textHint)),
                                         const SizedBox(width: 6),
                                         Expanded(
                                           child: ClipRRect(
-                                            borderRadius:
-                                                BorderRadius.circular(4),
+                                            borderRadius: BorderRadius.circular(4),
                                             child: LinearProgressIndicator(
-                                              value: pct,
-                                              minHeight: 6,
+                                              value: pct, minHeight: 6,
                                               backgroundColor: AppColors.divider,
-                                              valueColor:
-                                                  const AlwaysStoppedAnimation(
-                                                      AppColors.primary),
+                                              valueColor: const AlwaysStoppedAnimation(AppColors.primary),
                                             ),
                                           ),
                                         ),
@@ -403,30 +334,15 @@ class _DetailScreenState extends State<DetailScreen> {
                         ),
                         const SizedBox(height: 16),
                         const Divider(color: AppColors.divider),
-
-                        // Empty state reviews
                         const SizedBox(height: 8),
                         const Center(
-                          child: Text(
-                            'Belum ada ulasan. Jadilah yang pertama!',
-                            style: TextStyle(
-                                fontSize: 13, color: AppColors.textHint),
-                          ),
+                          child: Text('Belum ada ulasan. Jadilah yang pertama!', style: TextStyle(fontSize: 13, color: AppColors.textHint)),
                         ),
-                        const SizedBox(height: 8),
-
                         const SizedBox(height: 8),
                         Center(
                           child: GestureDetector(
                             onTap: () {},
-                            child: const Text(
-                              AppStrings.lihatSemuaUlasan,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                            child: const Text(AppStrings.lihatSemuaUlasan, style: TextStyle(fontSize: 14, color: AppColors.primary, fontWeight: FontWeight.w600)),
                           ),
                         ),
                       ],
@@ -454,71 +370,36 @@ class _DetailScreenState extends State<DetailScreen> {
             color: AppColors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
-          padding: EdgeInsets.only(
-            left: 24,
-            right: 24,
-            top: 24,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-          ),
+          padding: EdgeInsets.only(left: 24, right: 24, top: 24, bottom: MediaQuery.of(context).viewInsets.bottom + 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                      color: AppColors.divider,
-                      borderRadius: BorderRadius.circular(2))),
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.divider, borderRadius: BorderRadius.circular(2))),
               const SizedBox(height: 20),
-              const Text('Beri Rating',
-                  style: TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.w700)),
+              const Text('Beri Rating', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
               const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(
-                  5,
-                  (i) => GestureDetector(
-                    onTap: () =>
-                        setModalState(() => selectedStars = i + 1),
-                    child: Padding(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 4),
-                      child: Icon(
-                        i < selectedStars
-                            ? Icons.star_rounded
-                            : Icons.star_outline_rounded,
-                        size: 40,
-                        color: AppColors.star,
-                      ),
-                    ),
+                children: List.generate(5, (i) => GestureDetector(
+                  onTap: () => setModalState(() => selectedStars = i + 1),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Icon(i < selectedStars ? Icons.star_rounded : Icons.star_outline_rounded, size: 40, color: AppColors.star),
                   ),
-                ),
+                )),
               ),
               const SizedBox(height: 16),
               TextField(
                 maxLines: 3,
                 decoration: InputDecoration(
                   hintText: 'Tulis ulasanmu di sini...',
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide:
-                          const BorderSide(color: AppColors.divider)),
-                  enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide:
-                          const BorderSide(color: AppColors.divider)),
-                  focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(
-                          color: AppColors.primary, width: 1.5)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.divider)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.divider)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
                 ),
               ),
               const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Kirim Rating'),
-              ),
+              ElevatedButton(onPressed: () => Navigator.pop(context), child: const Text('Kirim Rating')),
             ],
           ),
         ),

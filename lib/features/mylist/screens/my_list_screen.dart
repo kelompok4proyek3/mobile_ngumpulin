@@ -7,6 +7,7 @@ import '../../../models/saved_spot_model.dart';
 import '../../../models/spot_model.dart';
 import '../services/saved_spot_api_service.dart';
 import '../../detail/screens/detail_screen.dart';
+import '../services/saved_spot_api_service.dart';
 
 class MyListScreen extends StatefulWidget {
   const MyListScreen({super.key});
@@ -165,8 +166,7 @@ class _MyListScreenState extends State<MyListScreen> {
                             enabledBorder: InputBorder.none,
                             focusedBorder: InputBorder.none,
                             isDense: true,
-                            contentPadding:
-                                EdgeInsets.symmetric(vertical: 14),
+                            contentPadding: EdgeInsets.symmetric(vertical: 14),
                           ),
                         ),
                       ),
@@ -257,7 +257,7 @@ class _MyListScreenState extends State<MyListScreen> {
                             MaterialPageRoute(
                               builder: (_) => DetailScreen(spot: item.spot),
                             ),
-                          );
+                          ).then((_) => _loadSavedSpots()); // ← tambah ini
                         },
                         onDelete: () => _deleteItem(item.spot.id, i),
                       );
@@ -468,9 +468,8 @@ class _SavedCard extends StatelessWidget {
                         color: note.isEmpty
                             ? AppColors.textHint
                             : AppColors.textSecondary,
-                        fontStyle: note.isEmpty
-                            ? FontStyle.italic
-                            : FontStyle.normal,
+                        fontStyle:
+                            note.isEmpty ? FontStyle.italic : FontStyle.normal,
                         height: 1.4,
                       ),
                     ),
