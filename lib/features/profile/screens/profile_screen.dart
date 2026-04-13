@@ -15,7 +15,7 @@ import '../../../core/constants/dummy_data.dart';
 import '../../auth/screens/login_screen.dart';
 import '../../auth/services/auth_api_service.dart';
 import 'edit_profile_screen.dart';
-import 'notification_screen.dart';
+import '../../notification/screens/notification_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});

@@ -6,6 +6,8 @@ import '../../../core/constants/app_strings.dart';
 import '../services/auth_api_service.dart';
 import '../../home/screens/main_screen.dart';
 import '../../../core/guards/auth_guard.dart';
+import 'register_screen.dart';
+import '../services/google_auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -41,21 +43,41 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     setState(() => _isLoading = true);
-
     final result = await _authApiService.login(email, password);
-
     if (!mounted) return;
     setState(() => _isLoading = false);
 
     if (result['success'] == true) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const AuthGuard(child: MainScreen())), // sesuaikan dengan halaman tujuan setelah login
+        MaterialPageRoute(
+            builder: (_) => const MainScreen()), // ← hapus AuthGuard
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(result['message'] ?? 'Login gagal'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleGoogleLogin() async {
+    setState(() => _isLoading = true);
+    final result = await GoogleAuthService().signInWithGoogle();
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (result['success'] == true) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const MainScreen()),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message'] ?? 'Login Google gagal'),
           backgroundColor: Colors.red,
         ),
       );
@@ -117,27 +139,21 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 28),
 
-              // Google Button
-              // OutlinedButton.icon(
-              //   onPressed: () {
-              //     Navigator.pushReplacement(
-              //       context,
-              //       MaterialPageRoute(
-              //           builder: (_) => const MainScreen()),
-              //     );
-              //   },
-              //   style: OutlinedButton.styleFrom(
-              //     foregroundColor: AppColors.textPrimary,
-              //     side: const BorderSide(color: AppColors.divider),
-              //     backgroundColor: AppColors.white,
-              //   ),
-              //   icon: const Text('G',
-              //       style: TextStyle(
-              //           color: Colors.red,
-              //           fontWeight: FontWeight.w700,
-              //           fontSize: 18)),
-              //   label: const Text(AppStrings.masukDenganGoogle),
-              // ),
+              //Google Button
+              OutlinedButton.icon(
+                onPressed: _isLoading ? null : _handleGoogleLogin,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.textPrimary,
+                  side: const BorderSide(color: AppColors.divider),
+                  backgroundColor: AppColors.white,
+                ),
+                icon: const Text('G',
+                    style: TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 18)),
+                label: const Text(AppStrings.masukDenganGoogle),
+              ),
 
               const SizedBox(height: 20),
               Row(
@@ -240,8 +256,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     borderSide:
                         BorderSide(color: AppColors.primary, width: 1.5),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 14),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscurePassword
@@ -256,7 +272,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 28),
-              
+
               ElevatedButton(
                 onPressed: _isLoading ? null : _handleLogin,
                 child: _isLoading
@@ -277,12 +293,18 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   const Text(
                     AppStrings.belumPunyaAkun,
-                    style: TextStyle(
-                        fontSize: 14, color: AppColors.textSecondary),
+                    style:
+                        TextStyle(fontSize: 14, color: AppColors.textSecondary),
                   ),
                   const SizedBox(width: 4),
                   GestureDetector(
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const RegisterScreen()),
+                      );
+                    },
                     child: const Text(
                       AppStrings.daftarGratis,
                       style: TextStyle(
@@ -303,8 +325,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(width: 4),
                   const Text(
                     AppStrings.amanTerenkripsi,
-                    style:
-                        TextStyle(fontSize: 12, color: AppColors.textHint),
+                    style: TextStyle(fontSize: 12, color: AppColors.textHint),
                   ),
                   const SizedBox(width: 16),
                   const Icon(Icons.people_outline_rounded,
@@ -312,8 +333,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(width: 4),
                   const Text(
                     AppStrings.komunitasIndonesia,
-                    style:
-                        TextStyle(fontSize: 12, color: AppColors.textHint),
+                    style: TextStyle(fontSize: 12, color: AppColors.textHint),
                   ),
                 ],
               ),

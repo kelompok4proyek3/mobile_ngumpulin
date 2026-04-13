@@ -1,9 +1,14 @@
+// lib/features/home/screens/home_screen.dart
+
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
-import '../../../core/constants/dummy_data.dart';
+import '../../../models/spot_model.dart';
 import '../../../core/widgets/spot_card.dart';
+import '../services/location_api_service.dart';
+import '../services/spot_api_service.dart';
 import '../../detail/screens/detail_screen.dart';
+import '../../notification/screens/notification_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,6 +19,18 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedCategoryIndex = 0;
+  String _currentCity = 'Memuat...';
+  bool _isLoadingLocation = true;
+
+  // State untuk data dari API
+  List<SpotModel> _spots = [];
+  bool _isLoadingSpots = true;
+  String? _errorMessage;
+
+  String _searchQuery = '';
+  final _searchCtrl = TextEditingController();
+  final _spotApiService = SpotApiService();
+
   final List<String> _categories = [
     AppStrings.semua,
     AppStrings.kafe,
@@ -22,13 +39,88 @@ class _HomeScreenState extends State<HomeScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _loadLocation();
+    _loadSpots();
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadLocation() async {
+    setState(() => _isLoadingLocation = true);
+    final city = await LocationService().getCurrentCity();
+    if (mounted) {
+      setState(() {
+        _currentCity = city;
+        _isLoadingLocation = false;
+      });
+    }
+  }
+
+  Future<void> _loadSpots({String? search, String? kategori}) async {
+    setState(() {
+      _isLoadingSpots = true;
+      _errorMessage = null;
+    });
+
+    final result = await _spotApiService.getSpots(
+      search: search,
+      kategori: kategori,
+    );
+
+    if (!mounted) return;
+
+    if (result['success'] == true) {
+      final List<dynamic> data = result['data'] ?? [];
+      setState(() {
+        _spots = data.map((json) => SpotModel.fromJson(json)).toList();
+        _isLoadingSpots = false;
+      });
+    } else {
+      setState(() {
+        _errorMessage = result['message'] ?? 'Gagal memuat data.';
+        _isLoadingSpots = false;
+      });
+    }
+  }
+
+  // Filter dilakukan lokal dari data yang sudah di-fetch
+  List<SpotModel> get _filteredSpots {
+    var spots = List<SpotModel>.from(_spots);
+
+    if (_selectedCategoryIndex != 0) {
+      final cat = _categories[_selectedCategoryIndex].toUpperCase();
+      spots = spots.where((s) => s.kategoriUtama == cat).toList();
+    }
+
+    if (_searchQuery.isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
+      spots = spots.where((s) {
+        return s.namaSpot.toLowerCase().contains(q) ||
+            s.kategoriUtama.toLowerCase().contains(q) ||
+            s.alamat.toLowerCase().contains(q) ||
+            s.kategoris.any((t) => t.toLowerCase().contains(q));
+      }).toList();
+    }
+
+    return spots;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final spots = DummyData.spots;
+    final filtered = _filteredSpots;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F0EB),
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
+            // Header
             SliverToBoxAdapter(
               child: Padding(
                 padding:
@@ -57,57 +149,78 @@ class _HomeScreenState extends State<HomeScreen> {
                               style: TextStyle(
                                   fontSize: 11, color: AppColors.textHint),
                             ),
-                            Row(
-                              children: const [
-                                Text(
-                                  'Indramayu',
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                                SizedBox(width: 4),
-                                Icon(Icons.keyboard_arrow_down_rounded,
-                                    size: 16, color: AppColors.textPrimary),
-                              ],
+                            GestureDetector(
+                              onTap: _loadLocation,
+                              child: Row(
+                                children: [
+                                  _isLoadingLocation
+                                      ? const SizedBox(
+                                          width: 14,
+                                          height: 14,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: AppColors.primary,
+                                          ),
+                                        )
+                                      : Text(
+                                          _currentCity,
+                                          style: const TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w700,
+                                            color: AppColors.textPrimary,
+                                          ),
+                                        ),
+                                  const SizedBox(width: 4),
+                                  const Icon(Icons.keyboard_arrow_down_rounded,
+                                      size: 16, color: AppColors.textPrimary),
+                                ],
+                              ),
                             ),
                           ],
                         ),
                       ],
                     ),
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: AppColors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.06),
-                            blurRadius: 8,
-                          ),
-                        ],
-                      ),
-                      child: Stack(
-                        children: [
-                          const Center(
-                            child: Icon(Icons.notifications_none_rounded,
-                                size: 20, color: AppColors.textPrimary),
-                          ),
-                          Positioned(
-                            top: 8,
-                            right: 8,
-                            child: Container(
-                              width: 8,
-                              height: 8,
-                              decoration: const BoxDecoration(
-                                color: AppColors.primary,
-                                shape: BoxShape.circle,
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const NotificationScreen()),
+                        );
+                      },
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: AppColors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.06),
+                              blurRadius: 8,
+                            ),
+                          ],
+                        ),
+                        child: Stack(
+                          children: [
+                            const Center(
+                              child: Icon(Icons.notifications_none_rounded,
+                                  size: 20, color: AppColors.textPrimary),
+                            ),
+                            Positioned(
+                              top: 8,
+                              right: 8,
+                              child: Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                  color: AppColors.primary,
+                                  shape: BoxShape.circle,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -133,18 +246,41 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                   child: Row(
-                    children: const [
-                      SizedBox(width: 14),
-                      Icon(Icons.search_rounded,
+                    children: [
+                      const SizedBox(width: 14),
+                      const Icon(Icons.search_rounded,
                           color: AppColors.textHint, size: 20),
-                      SizedBox(width: 10),
-                      Text(
-                        AppStrings.cariTempat,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: AppColors.textHint,
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextField(
+                          controller: _searchCtrl,
+                          onChanged: (v) => setState(() => _searchQuery = v),
+                          style: const TextStyle(
+                              fontSize: 14, color: AppColors.textPrimary),
+                          decoration: const InputDecoration(
+                            hintText: AppStrings.cariTempat,
+                            hintStyle: TextStyle(
+                                fontSize: 14, color: AppColors.textHint),
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
+                          ),
                         ),
                       ),
+                      if (_searchQuery.isNotEmpty)
+                        GestureDetector(
+                          onTap: () {
+                            _searchCtrl.clear();
+                            setState(() => _searchQuery = '');
+                          },
+                          child: const Padding(
+                            padding: EdgeInsets.only(right: 12),
+                            child: Icon(Icons.close_rounded,
+                                size: 18, color: AppColors.textHint),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -211,53 +347,116 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Rekomendasi Untukmu',
-                      style: TextStyle(
+                    Text(
+                      _searchQuery.isNotEmpty
+                          ? '${filtered.length} hasil untuk "$_searchQuery"'
+                          : 'Rekomendasi Untukmu',
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: AppColors.textPrimary,
                       ),
                     ),
-                    GestureDetector(
-                      onTap: () {},
-                      child: const Text(
-                        AppStrings.lihatSemua,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w600,
+                    if (_searchQuery.isEmpty)
+                      GestureDetector(
+                        onTap: () {},
+                        child: const Text(
+                          AppStrings.lihatSemua,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),
             ),
 
+            // Loading State
+            if (_isLoadingSpots)
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 48),
+                  child: Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                ),
+              )
+
+            // Error State
+            else if (_errorMessage != null)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 48),
+                  child: Column(
+                    children: [
+                      const Icon(Icons.wifi_off_rounded,
+                          size: 48, color: AppColors.textHint),
+                      const SizedBox(height: 12),
+                      Text(
+                        _errorMessage!,
+                        style: const TextStyle(
+                            fontSize: 14, color: AppColors.textHint),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      TextButton(
+                        onPressed: _loadSpots,
+                        child: const Text('Coba Lagi'),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+
+            // Empty State
+            else if (filtered.isEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 48),
+                  child: Column(
+                    children: [
+                      Icon(Icons.search_off_rounded,
+                          size: 48, color: AppColors.textHint),
+                      const SizedBox(height: 12),
+                      Text(
+                        _searchQuery.isNotEmpty
+                            ? 'Tidak ada tempat untuk "$_searchQuery"'
+                            : 'Belum ada spot tersedia.',
+                        style: const TextStyle(
+                            fontSize: 14, color: AppColors.textHint),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+
             // Spots List
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final spot = spots[index];
-                    return SpotCard(
-                      spot: spot,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => DetailScreen(spot: spot),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                  childCount: spots.length,
+            else
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final spot = filtered[index];
+                      return SpotCard(
+                        spot: spot,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => DetailScreen(spot: spot),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                    childCount: filtered.length,
+                  ),
                 ),
               ),
-            ),
 
             const SliverToBoxAdapter(child: SizedBox(height: 16)),
           ],

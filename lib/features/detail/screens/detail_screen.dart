@@ -24,7 +24,7 @@ class _DetailScreenState extends State<DetailScreen> {
       backgroundColor: const Color(0xFFF5F0EB),
       body: CustomScrollView(
         slivers: [
-          // App Bar with Image
+          // App Bar with Image placeholder
           SliverAppBar(
             expandedHeight: 260,
             pinned: true,
@@ -67,45 +67,12 @@ class _DetailScreenState extends State<DetailScreen> {
             centerTitle: true,
             title: const Text(AppStrings.detailTempat),
             flexibleSpace: FlexibleSpaceBar(
-              background: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Image.network(
-                    spot.imageUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      color: AppColors.divider,
-                      child: const Icon(Icons.image_not_supported,
-                          color: AppColors.textHint, size: 48),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 12,
-                    right: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.6),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(Icons.camera_alt_outlined,
-                              size: 12, color: Colors.white),
-                          SizedBox(width: 4),
-                          Text(
-                            '1/12',
-                            style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.white,
-                                fontWeight: FontWeight.w500),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+              background: Container(
+                color: AppColors.primaryLight,
+                child: const Center(
+                  child: Icon(Icons.storefront_rounded,
+                      size: 80, color: AppColors.primary),
+                ),
               ),
             ),
           ),
@@ -132,7 +99,7 @@ class _DetailScreenState extends State<DetailScreen> {
                           children: [
                             Expanded(
                               child: Text(
-                                spot.name,
+                                spot.namaSpot,
                                 style: const TextStyle(
                                   fontSize: 22,
                                   fontWeight: FontWeight.w800,
@@ -150,7 +117,7 @@ class _DetailScreenState extends State<DetailScreen> {
                               child: Column(
                                 children: [
                                   Text(
-                                    spot.rating.toString(),
+                                    spot.avgRating.toStringAsFixed(1),
                                     style: const TextStyle(
                                       fontSize: 20,
                                       fontWeight: FontWeight.w800,
@@ -172,7 +139,7 @@ class _DetailScreenState extends State<DetailScreen> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          '${spot.category} • ${spot.isOpen ? AppStrings.terbuka : AppStrings.tutup}',
+                          '${spot.kategoriUtama} • ${spot.isOpen ? AppStrings.terbuka : AppStrings.tutup}',
                           style: const TextStyle(
                             fontSize: 13,
                             color: AppColors.primary,
@@ -186,7 +153,7 @@ class _DetailScreenState extends State<DetailScreen> {
                                 size: 14, color: AppColors.textHint),
                             const SizedBox(width: 6),
                             Text(
-                              spot.priceRange,
+                              spot.hargaRange ?? '-',
                               style: const TextStyle(
                                   fontSize: 12,
                                   color: AppColors.textSecondary),
@@ -196,7 +163,7 @@ class _DetailScreenState extends State<DetailScreen> {
                                 size: 14, color: AppColors.textHint),
                             const SizedBox(width: 6),
                             Text(
-                              '${AppStrings.buka} ${spot.openHours}',
+                              '${AppStrings.buka} ${spot.jamOperasional}',
                               style: const TextStyle(
                                   fontSize: 12,
                                   color: AppColors.textSecondary),
@@ -251,8 +218,8 @@ class _DetailScreenState extends State<DetailScreen> {
 
                   // Location Card
                   Container(
-                    margin:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                    margin: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 0),
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: AppColors.white,
@@ -277,7 +244,7 @@ class _DetailScreenState extends State<DetailScreen> {
                             const SizedBox(width: 6),
                             Expanded(
                               child: Text(
-                                spot.address,
+                                spot.alamat,
                                 style: const TextStyle(
                                   fontSize: 13,
                                   color: AppColors.textSecondary,
@@ -340,8 +307,7 @@ class _DetailScreenState extends State<DetailScreen> {
 
                   // Reviews Card
                   Container(
-                    margin:
-                        const EdgeInsets.symmetric(horizontal: 16),
+                    margin: const EdgeInsets.symmetric(horizontal: 16),
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: AppColors.white,
@@ -365,7 +331,7 @@ class _DetailScreenState extends State<DetailScreen> {
                             Column(
                               children: [
                                 Text(
-                                  spot.rating.toString(),
+                                  spot.avgRating.toStringAsFixed(1),
                                   style: const TextStyle(
                                     fontSize: 52,
                                     fontWeight: FontWeight.w800,
@@ -377,9 +343,9 @@ class _DetailScreenState extends State<DetailScreen> {
                                   children: List.generate(
                                     5,
                                     (i) => Icon(
-                                      i < spot.rating.floor()
+                                      i < spot.avgRating.floor()
                                           ? Icons.star_rounded
-                                          : i < spot.rating
+                                          : i < spot.avgRating
                                               ? Icons.star_half_rounded
                                               : Icons.star_outline_rounded,
                                       size: 16,
@@ -388,9 +354,9 @@ class _DetailScreenState extends State<DetailScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 4),
-                                const Text(
-                                  'Berdasarkan 128 ulasan',
-                                  style: TextStyle(
+                                Text(
+                                  'Berdasarkan ${spot.reviewCount} ulasan',
+                                  style: const TextStyle(
                                       fontSize: 10,
                                       color: AppColors.textHint),
                                 ),
@@ -404,8 +370,8 @@ class _DetailScreenState extends State<DetailScreen> {
                                   final count = ratingCounts[i];
                                   final pct = count / totalRatings;
                                   return Padding(
-                                    padding:
-                                        const EdgeInsets.symmetric(vertical: 2),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 2),
                                     child: Row(
                                       children: [
                                         Text('$starNum',
@@ -420,8 +386,7 @@ class _DetailScreenState extends State<DetailScreen> {
                                             child: LinearProgressIndicator(
                                               value: pct,
                                               minHeight: 6,
-                                              backgroundColor:
-                                                  AppColors.divider,
+                                              backgroundColor: AppColors.divider,
                                               valueColor:
                                                   const AlwaysStoppedAnimation(
                                                       AppColors.primary),
@@ -439,20 +404,16 @@ class _DetailScreenState extends State<DetailScreen> {
                         const SizedBox(height: 16),
                         const Divider(color: AppColors.divider),
 
-                        // Review items
-                        ...spot.reviews.map((review) => _ReviewItem(review: review)),
-
-                        if (spot.reviews.isEmpty) ...[
-                          const SizedBox(height: 8),
-                          Center(
-                            child: Text(
-                              'Belum ada ulasan. Jadilah yang pertama!',
-                              style: const TextStyle(
-                                  fontSize: 13, color: AppColors.textHint),
-                            ),
+                        // Empty state reviews
+                        const SizedBox(height: 8),
+                        const Center(
+                          child: Text(
+                            'Belum ada ulasan. Jadilah yang pertama!',
+                            style: TextStyle(
+                                fontSize: 13, color: AppColors.textHint),
                           ),
-                          const SizedBox(height: 8),
-                        ],
+                        ),
+                        const SizedBox(height: 8),
 
                         const SizedBox(height: 8),
                         Center(
@@ -510,17 +471,19 @@ class _DetailScreenState extends State<DetailScreen> {
                       borderRadius: BorderRadius.circular(2))),
               const SizedBox(height: 20),
               const Text('Beri Rating',
-                  style:
-                      TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                  style: TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.w700)),
               const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(
                   5,
                   (i) => GestureDetector(
-                    onTap: () => setModalState(() => selectedStars = i + 1),
+                    onTap: () =>
+                        setModalState(() => selectedStars = i + 1),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 4),
                       child: Icon(
                         i < selectedStars
                             ? Icons.star_rounded
@@ -559,100 +522,6 @@ class _DetailScreenState extends State<DetailScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _ReviewItem extends StatelessWidget {
-  final ReviewModel review;
-  const _ReviewItem({required this.review});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 18,
-                    backgroundColor: AppColors.primary.withOpacity(0.2),
-                    child: Text(
-                      review.userName[0],
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primary),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(review.userName,
-                          style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary)),
-                      Text(review.timeAgo,
-                          style: const TextStyle(
-                              fontSize: 11,
-                              color: AppColors.textHint)),
-                    ],
-                  ),
-                ],
-              ),
-              Row(
-                children: List.generate(
-                  5,
-                  (i) => Icon(
-                    i < review.rating.floor()
-                        ? Icons.star_rounded
-                        : Icons.star_outline_rounded,
-                    size: 13,
-                    color: AppColors.star,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            review.comment,
-            style: const TextStyle(
-              fontSize: 13,
-              color: AppColors.textSecondary,
-              height: 1.5,
-            ),
-          ),
-          if (review.images.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            SizedBox(
-              height: 70,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: review.images.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
-                itemBuilder: (_, __) => ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: Container(
-                    width: 70,
-                    color: AppColors.divider,
-                    child: const Icon(Icons.image_outlined,
-                        color: AppColors.textHint),
-                  ),
-                ),
-              ),
-            ),
-          ],
-          const SizedBox(height: 8),
-          const Divider(color: AppColors.divider, height: 1),
-        ],
       ),
     );
   }

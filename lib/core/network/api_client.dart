@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiClient {
-  static const String baseUrl = 'http://localhost:8000/api'; // ganti IP server lptop
+  static const String baseUrl = 'http://10.0.2.2:8000/api';// ganti IP server lptop
 
   static Dio createDio() {
     final dio = Dio(BaseOptions(

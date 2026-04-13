@@ -1,72 +1,57 @@
+// lib/core/models/spot__model.dart
+
 class SpotModel {
-  final String id;
-  final String name;
-  final String category;
-  final String imageUrl;
-  final double rating;
-  final String distance;
-  final String description;
-  final String address;
-  final String priceRange;
-  final String openHours;
+  final int id;
+  final String namaSpot;
+  final String alamat;
+  final double? lokasiLat;
+  final double? lokasiLng;
+  final String? jamBuka;
+  final String? jamTutup;
+  final String? hargaRange;
+  final String? deskripsi;
+  final double avgRating;
+  final int reviewCount;
   final bool isOpen;
-  final List<String> tags;
-  final List<ReviewModel> reviews;
-  final bool isSaved;
+  final List<String> kategoris;
 
   SpotModel({
     required this.id,
-    required this.name,
-    required this.category,
-    required this.imageUrl,
-    required this.rating,
-    required this.distance,
-    required this.description,
-    required this.address,
-    required this.priceRange,
-    required this.openHours,
+    required this.namaSpot,
+    required this.alamat,
+    this.lokasiLat,
+    this.lokasiLng,
+    this.jamBuka,
+    this.jamTutup,
+    this.hargaRange,
+    this.deskripsi,
+    required this.avgRating,
+    required this.reviewCount,
     required this.isOpen,
-    this.tags = const [],
-    this.reviews = const [],
-    this.isSaved = false,
+    required this.kategoris,
   });
 
-  SpotModel copyWith({bool? isSaved}) {
+  factory SpotModel.fromJson(Map<String, dynamic> json) {
     return SpotModel(
-      id: id,
-      name: name,
-      category: category,
-      imageUrl: imageUrl,
-      rating: rating,
-      distance: distance,
-      description: description,
-      address: address,
-      priceRange: priceRange,
-      openHours: openHours,
-      isOpen: isOpen,
-      tags: tags,
-      reviews: reviews,
-      isSaved: isSaved ?? this.isSaved,
+      id:          json['id'],
+      namaSpot:    json['nama_spot'] ?? '',
+      alamat:      json['alamat'] ?? '',
+      lokasiLat:   (json['lokasi_lat'] as num?)?.toDouble(),
+      lokasiLng:   (json['lokasi_lng'] as num?)?.toDouble(),
+      jamBuka:     json['jam_buka'],
+      jamTutup:    json['jam_tutup'],
+      hargaRange:  json['harga_range'],
+      deskripsi:   json['deskripsi'],
+      avgRating:   (json['avg_rating'] as num?)?.toDouble() ?? 0.0,
+      reviewCount: json['review_count'] ?? 0,
+      isOpen:      json['is_open'] ?? true,
+      kategoris:   List<String>.from(json['kategoris'] ?? []),
     );
   }
-}
 
-class ReviewModel {
-  final String id;
-  final String userName;
-  final String userAvatar;
-  final double rating;
-  final String comment;
-  final String timeAgo;
-  final List<String> images;
+  String get kategoriUtama =>
+      kategoris.isNotEmpty ? kategoris.first.toUpperCase() : 'LAINNYA';
 
-  ReviewModel({
-    required this.id,
-    required this.userName,
-    required this.userAvatar,
-    required this.rating,
-    required this.comment,
-    required this.timeAgo,
-    this.images = const [],
-  });
+  String get jamOperasional =>
+      (jamBuka != null && jamTutup != null) ? '$jamBuka - $jamTutup' : '-';
 }

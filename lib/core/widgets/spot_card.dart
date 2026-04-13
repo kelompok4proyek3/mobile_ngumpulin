@@ -30,6 +30,8 @@ class _SpotCardState extends State<SpotCard> {
 
   @override
   Widget build(BuildContext context) {
+    final spot = widget.spot;
+
     return GestureDetector(
       onTap: widget.onTap,
       child: Container(
@@ -50,19 +52,18 @@ class _SpotCardState extends State<SpotCard> {
           children: [
             Stack(
               children: [
+                // Tidak ada imageUrl di model baru — tampilkan placeholder
                 ClipRRect(
                   borderRadius:
                       const BorderRadius.vertical(top: Radius.circular(20)),
-                  child: Image.network(
-                    widget.spot.imageUrl,
+                  child: Container(
                     height: 180,
                     width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      height: 180,
-                      color: AppColors.divider,
-                      child: const Icon(Icons.image_not_supported,
-                          color: AppColors.textHint),
+                    color: AppColors.divider,
+                    child: const Icon(
+                      Icons.store_mall_directory_rounded,
+                      size: 48,
+                      color: AppColors.textHint,
                     ),
                   ),
                 ),
@@ -70,13 +71,15 @@ class _SpotCardState extends State<SpotCard> {
                   top: 12,
                   left: 12,
                   child: _buildBadge(
-                      widget.spot.category,
-                      _getCategoryColor(widget.spot.category)),
+                    spot.kategoriUtama,
+                    _getCategoryColor(spot.kategoriUtama),
+                  ),
                 ),
-                if (widget.spot.tags.length > 1)
+                // Badge HITS jika punya lebih dari 1 kategori
+                if (spot.kategoris.length > 1)
                   Positioned(
                     top: 12,
-                    left: widget.spot.category.length * 8.0 + 24,
+                    left: spot.kategoriUtama.length * 8.0 + 24,
                     child: _buildBadge('HITS', AppColors.hitsBadge),
                   ),
                 Positioned(
@@ -119,7 +122,7 @@ class _SpotCardState extends State<SpotCard> {
                     children: [
                       Expanded(
                         child: Text(
-                          widget.spot.name,
+                          spot.namaSpot, // ← dari DB
                           style: const TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.w700,
@@ -133,11 +136,19 @@ class _SpotCardState extends State<SpotCard> {
                               color: AppColors.star, size: 16),
                           const SizedBox(width: 2),
                           Text(
-                            widget.spot.rating.toString(),
+                            spot.avgRating.toStringAsFixed(1), // ← dari DB
                             style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                               color: AppColors.star,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '(${spot.reviewCount})', // ← bonus: jumlah review
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textHint,
                             ),
                           ),
                         ],
@@ -147,29 +158,87 @@ class _SpotCardState extends State<SpotCard> {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      const Icon(Icons.near_me_rounded,
+                      const Icon(Icons.location_on_rounded,
                           size: 12, color: AppColors.textHint),
                       const SizedBox(width: 4),
-                      Text(
-                        widget.spot.distance,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textHint,
+                      Expanded(
+                        child: Text(
+                          spot.alamat, // ← dari DB
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textHint,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 6),
-                  Text(
-                    widget.spot.description,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppColors.textSecondary,
-                      height: 1.4,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                  // Jam operasional
+                  Row(
+                    children: [
+                      const Icon(Icons.access_time_rounded,
+                          size: 12, color: AppColors.textHint),
+                      const SizedBox(width: 4),
+                      Text(
+                        spot.jamOperasional, // ← dari DB
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textHint,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: spot.isOpen
+                              ? Colors.green.withOpacity(0.1)
+                              : Colors.red.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          spot.isOpen ? 'Buka' : 'Tutup',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: spot.isOpen ? Colors.green : Colors.red,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
+                  if (spot.deskripsi != null && spot.deskripsi!.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      spot.deskripsi!, // ← dari DB
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                        height: 1.4,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                  if (spot.hargaRange != null) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        const Icon(Icons.attach_money_rounded,
+                            size: 12, color: AppColors.textHint),
+                        const SizedBox(width: 2),
+                        Text(
+                          spot.hargaRange!, // ← dari DB
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textHint,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
