@@ -16,12 +16,18 @@ class _SpotCardState extends State<SpotCard> {
   bool _isSaved = false;
 
   Color _getCategoryColor(String category) {
-    switch (category.toUpperCase()) {
-      case 'KAFE':
+    switch (category.toLowerCase()) {
+      case 'kafe':
+      case 'cafe':
+      case 'coffee':
         return AppColors.kafeBadge;
-      case 'RESTO':
+      case 'resto':
+      case 'restoran':
+      case 'restaurant':
         return AppColors.restoBadge;
-      case 'OUTDOOR':
+      case 'outdoor':
+      case 'wisata':
+      case 'taman':
         return AppColors.outdoorBadge;
       default:
         return AppColors.primary;
@@ -52,7 +58,6 @@ class _SpotCardState extends State<SpotCard> {
           children: [
             Stack(
               children: [
-                // Tidak ada imageUrl di model baru — tampilkan placeholder
                 ClipRRect(
                   borderRadius:
                       const BorderRadius.vertical(top: Radius.circular(20)),
@@ -67,6 +72,7 @@ class _SpotCardState extends State<SpotCard> {
                     ),
                   ),
                 ),
+                // Hanya satu badge kategori, tanpa HITS
                 Positioned(
                   top: 12,
                   left: 12,
@@ -75,13 +81,6 @@ class _SpotCardState extends State<SpotCard> {
                     _getCategoryColor(spot.kategoriUtama),
                   ),
                 ),
-                // Badge HITS jika punya lebih dari 1 kategori
-                if (spot.kategoris.length > 1)
-                  Positioned(
-                    top: 12,
-                    left: spot.kategoriUtama.length * 8.0 + 24,
-                    child: _buildBadge('HITS', AppColors.hitsBadge),
-                  ),
                 Positioned(
                   top: 10,
                   right: 12,
@@ -122,7 +121,7 @@ class _SpotCardState extends State<SpotCard> {
                     children: [
                       Expanded(
                         child: Text(
-                          spot.namaSpot, // ← dari DB
+                          spot.namaSpot,
                           style: const TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.w700,
@@ -136,7 +135,7 @@ class _SpotCardState extends State<SpotCard> {
                               color: AppColors.star, size: 16),
                           const SizedBox(width: 2),
                           Text(
-                            spot.avgRating.toStringAsFixed(1), // ← dari DB
+                            spot.avgRating.toStringAsFixed(1),
                             style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
@@ -145,7 +144,7 @@ class _SpotCardState extends State<SpotCard> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            '(${spot.reviewCount})', // ← bonus: jumlah review
+                            '(${spot.reviewCount})',
                             style: const TextStyle(
                               fontSize: 11,
                               color: AppColors.textHint,
@@ -163,7 +162,7 @@ class _SpotCardState extends State<SpotCard> {
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
-                          spot.alamat, // ← dari DB
+                          spot.alamat,
                           style: const TextStyle(
                             fontSize: 12,
                             color: AppColors.textHint,
@@ -175,14 +174,13 @@ class _SpotCardState extends State<SpotCard> {
                     ],
                   ),
                   const SizedBox(height: 6),
-                  // Jam operasional
                   Row(
                     children: [
                       const Icon(Icons.access_time_rounded,
                           size: 12, color: AppColors.textHint),
                       const SizedBox(width: 4),
                       Text(
-                        spot.jamOperasional, // ← dari DB
+                        spot.jamOperasional,
                         style: const TextStyle(
                           fontSize: 12,
                           color: AppColors.textHint,
@@ -212,7 +210,7 @@ class _SpotCardState extends State<SpotCard> {
                   if (spot.deskripsi != null && spot.deskripsi!.isNotEmpty) ...[
                     const SizedBox(height: 6),
                     Text(
-                      spot.deskripsi!, // ← dari DB
+                      spot.deskripsi!,
                       style: const TextStyle(
                         fontSize: 13,
                         color: AppColors.textSecondary,
@@ -230,7 +228,7 @@ class _SpotCardState extends State<SpotCard> {
                             size: 12, color: AppColors.textHint),
                         const SizedBox(width: 2),
                         Text(
-                          spot.hargaRange!, // ← dari DB
+                          spot.hargaRange!,
                           style: const TextStyle(
                             fontSize: 12,
                             color: AppColors.textHint,
@@ -249,6 +247,10 @@ class _SpotCardState extends State<SpotCard> {
   }
 
   Widget _buildBadge(String label, Color color) {
+    final displayLabel = label.isNotEmpty
+        ? label[0].toUpperCase() + label.substring(1).toLowerCase()
+        : label;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -256,7 +258,7 @@ class _SpotCardState extends State<SpotCard> {
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
-        label,
+        displayLabel, // <-- pakai ini, bukan label langsung
         style: const TextStyle(
           color: Colors.white,
           fontSize: 10,
