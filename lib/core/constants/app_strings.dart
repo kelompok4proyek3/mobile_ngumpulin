@@ -28,6 +28,7 @@ class AppStrings {
   static const String lanjutkan = 'Lanjutkan';
   static const String bisaUbahKapanSaja =
       'Kamu bisa mengubah pilihan ini kapan saja di profil.';
+  static const String simpan = 'Simpan';
 
   // Home
   static const String lokasiKamu = 'Lokasi Kamu';
@@ -83,4 +84,6 @@ class AppStrings {
   static const String notifikasi = 'Notifikasi';
   static const String keamanan = 'Keamanan';
   static const String keluarAkun = 'Keluar Akun';
+
+
 }

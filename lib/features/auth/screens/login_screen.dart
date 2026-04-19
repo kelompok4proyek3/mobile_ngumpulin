@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../onboarding/screens/preference_screen.dart';
 import '../../home/screens/main_screen.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../services/auth_api_service.dart';
-import '../../home/screens/main_screen.dart';
-import '../../../core/guards/auth_guard.dart';
 import 'register_screen.dart';
 import '../services/google_auth_service.dart';
 

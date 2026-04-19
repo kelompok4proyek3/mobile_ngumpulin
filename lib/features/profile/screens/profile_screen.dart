@@ -1,19 +1,16 @@
 // lib/features/profile/screens/profile_screen.dart
 //
-// PERBAIKAN UTAMA:
-// - Hapus semua hardcode ('N', 'Nieman', 'lukmanadiyatna2@gmail.com')
-// - Nama & email diambil dari SharedPreferences yang diisi AuthApiService.login()
-// - Avatar inisial otomatis dari huruf pertama nama login
-// - Logout benar redirect ke LoginScreen (bukan MainScreen)
-// - Pull-to-refresh untuk reload data
+// FIX: preferences dari API (PreferenceApiService.getUserPreferences())
+// bukan dari DummyData yang hardcode
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
-import '../../../core/constants/dummy_data.dart';
 import '../../auth/screens/login_screen.dart';
 import '../../auth/services/auth_api_service.dart';
+import '../../onboarding/screens/preference_screen.dart';
+import '../../onboarding/services/preference_api_service.dart';
 import 'edit_profile_screen.dart';
 import '../../notification/screens/notification_screen.dart';
 
@@ -25,30 +22,81 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  String _name = '';
-  String _email = '';
+  String _name      = '';
+  String _email     = '';
   String? _avatarUrl;
-  bool _isLoading = true;
+  bool _isLoading   = true;
+
+  // Preferences dari API
+  List<Map<String, dynamic>> _preferences = [];
+  bool _isLoadingPrefs = true;
+
+  final _prefService = PreferenceApiService();
 
   @override
   void initState() {
     super.initState();
-    _loadUserData();
+    _loadAll();
   }
 
-  // Baca dari SharedPreferences — diisi oleh AuthApiService.login()
-  // key: 'user_name', 'user_email', 'user_avatar'
+  Future<void> _loadAll() async {
+    setState(() => _isLoading = true);
+    await Future.wait([_loadUserData(), _loadPreferences()]);
+    if (mounted) setState(() => _isLoading = false);
+  }
+
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _name     = prefs.getString('user_name')  ?? '';
-      _email    = prefs.getString('user_email') ?? '';
-      _avatarUrl = prefs.getString('user_avatar');
-      _isLoading = false;
-    });
+    if (mounted) {
+      setState(() {
+        _name      = prefs.getString('user_name')  ?? '';
+        _email     = prefs.getString('user_email') ?? '';
+        _avatarUrl = prefs.getString('user_avatar');
+      });
+    }
   }
 
-  // Inisial huruf pertama nama untuk avatar placeholder
+  // GET /api/preferences/user
+  Future<void> _loadPreferences() async {
+    setState(() => _isLoadingPrefs = true);
+    final result = await _prefService.getUserPreferences();
+    if (!mounted) return;
+
+    if (result['success'] == true) {
+      final List<dynamic> data = result['data'] ?? [];
+      setState(() {
+        _preferences = data.map((p) => {
+          'id'  : p['id'],
+          'nama': (p['nama_preference'] ?? p['nama'] ?? '').toString(),
+          'icon': _emojiFor((p['nama_preference'] ?? p['nama'] ?? '').toString()),
+        }).toList();
+      });
+    } else {
+      setState(() => _preferences = []);
+    }
+    setState(() => _isLoadingPrefs = false);
+  }
+
+  // Mapping nama preferensi → emoji
+  String _emojiFor(String nama) {
+    final n = nama.toLowerCase();
+    if (n.contains('kafe') || n.contains('coffee'))           return '☕';
+    if (n.contains('resto') || n.contains('kuliner'))         return '🍽️';
+    if (n.contains('outdoor'))                                 return '🌲';
+    if (n.contains('rooftop'))                                 return '🏙️';
+    if (n.contains('budget'))                                  return '💰';
+    if (n.contains('night') || n.contains('malam'))           return '🌙';
+    if (n.contains('wifi'))                                    return '📶';
+    if (n.contains('music') || n.contains('musik'))           return '🎵';
+    if (n.contains('konser'))                                  return '🎤';
+    if (n.contains('kid') || n.contains('anak'))              return '👶';
+    if (n.contains('stop') || n.contains('charge'))           return '🔌';
+    if (n.contains('olah') || n.contains('sport'))            return '🏃';
+    if (n.contains('teknologi') || n.contains('tech'))        return '💻';
+    if (n.contains('seni') || n.contains('art'))              return '🎨';
+    return '📍';
+  }
+
   String get _initial =>
       _name.trim().isNotEmpty ? _name.trim()[0].toUpperCase() : '?';
 
@@ -82,20 +130,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
     );
-
     if (confirm != true) return;
 
-    // Panggil API logout → hapus token di server (Sanctum)
-    final authService = AuthApiService();
-    await authService.logout();
-
-    // Hapus semua data lokal
+    await AuthApiService().logout();
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
 
     if (!mounted) return;
-
-    // Redirect ke LoginScreen, bersihkan semua history
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -105,9 +146,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final preferences = DummyData.userPreferences;
-    final prefIcons   = ['🎵', '🏃', '🍽️', '💻', '🎨'];
-
     if (_isLoading) {
       return const Scaffold(
         backgroundColor: Color(0xFFF5F0EB),
@@ -127,7 +165,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       body: RefreshIndicator(
         color: AppColors.primary,
-        onRefresh: _loadUserData,
+        onRefresh: _loadAll,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -135,7 +173,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               const SizedBox(height: 20),
 
-              // ── Avatar ─────────────────────────────────────────────────
+              // ── Avatar ────────────────────────────────────────────────────
               Stack(
                 alignment: Alignment.center,
                 children: [
@@ -149,11 +187,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     child: ClipOval(
                       child: (_avatarUrl != null && _avatarUrl!.isNotEmpty)
-                          ? Image.network(
-                              _avatarUrl!,
+                          ? Image.network(_avatarUrl!,
                               fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => _buildInitial(),
-                            )
+                              errorBuilder: (_, __, ___) => _buildInitial())
                           : _buildInitial(),
                     ),
                   ),
@@ -176,25 +212,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 14),
 
-              // ── Nama dari SharedPreferences ─────────────────────────────
               Text(
                 _name.isNotEmpty ? _name : 'Pengguna',
                 style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                ),
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary),
               ),
               const SizedBox(height: 4),
-
-              // ── Email dari SharedPreferences ────────────────────────────
-              Text(
-                _email,
-                style: const TextStyle(fontSize: 13, color: AppColors.primary),
-              ),
+              Text(_email,
+                  style: const TextStyle(
+                      fontSize: 13, color: AppColors.primary)),
               const SizedBox(height: 20),
 
-              // ── Edit Profil ─────────────────────────────────────────────
+              // ── Edit Profil ───────────────────────────────────────────────
               ElevatedButton.icon(
                 onPressed: () async {
                   final updated = await Navigator.push<bool>(
@@ -207,7 +238,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                   );
-                  // Jika edit sukses, reload tampilan dari SharedPreferences
                   if (updated == true) _loadUserData();
                 },
                 icon: const Icon(Icons.edit_rounded, size: 16),
@@ -216,7 +246,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               const SizedBox(height: 24),
 
-              // ── Minat & Preferensi ──────────────────────────────────────
+              // ── Minat & Preferensi dari API ───────────────────────────────
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -235,7 +265,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.textPrimary)),
                         GestureDetector(
-                          onTap: () {},
+                          onTap: () async {
+                            final updated = await Navigator.push<bool>(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    const PreferenceScreen(isEditing: true),
+                              ),
+                            );
+                            // Reload dari API setelah ubah preferensi
+                            if (updated == true) _loadPreferences();
+                          },
                           child: const Text(AppStrings.ubah,
                               style: TextStyle(
                                   fontSize: 13,
@@ -245,43 +285,88 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                     ),
                     const SizedBox(height: 14),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: List.generate(
-                        preferences.length,
-                        (i) => Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
+
+                    // Loading
+                    if (_isLoadingPrefs)
+                      const Center(
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: AppColors.primary),
+                        ),
+                      )
+
+                    // Empty — ajak tambah preferensi
+                    else if (_preferences.isEmpty)
+                      GestureDetector(
+                        onTap: () async {
+                          final updated = await Navigator.push<bool>(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  const PreferenceScreen(isEditing: true),
+                            ),
+                          );
+                          if (updated == true) _loadPreferences();
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
                           decoration: BoxDecoration(
                             color: AppColors.primaryLight,
-                            borderRadius: BorderRadius.circular(50),
+                            borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                                 color: AppColors.primary.withOpacity(0.3)),
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(prefIcons[i % prefIcons.length],
-                                  style: const TextStyle(fontSize: 12)),
-                              const SizedBox(width: 6),
-                              Text(preferences[i],
-                                  style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.primary)),
-                            ],
+                          child: const Center(
+                            child: Text('+ Tambah preferensi',
+                                style: TextStyle(
+                                    fontSize: 13,
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w600)),
                           ),
                         ),
+                      )
+
+                    // Chip preferences dari API
+                    else
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _preferences.map((pref) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryLight,
+                              borderRadius: BorderRadius.circular(50),
+                              border: Border.all(
+                                  color: AppColors.primary.withOpacity(0.3)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(pref['icon'] as String,
+                                    style: const TextStyle(fontSize: 12)),
+                                const SizedBox(width: 6),
+                                Text(pref['nama'] as String,
+                                    style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.primary)),
+                              ],
+                            ),
+                          );
+                        }).toList(),
                       ),
-                    ),
                   ],
                 ),
               ),
 
               const SizedBox(height: 16),
 
-              // ── Pengaturan Akun ─────────────────────────────────────────
+              // ── Pengaturan Akun ───────────────────────────────────────────
               Container(
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
@@ -303,7 +388,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _SettingItem(
                       icon: Icons.notifications_outlined,
                       label: AppStrings.notifikasi,
-                      onTap: () => Navigator.push(context,
+                      onTap: () => Navigator.push(
+                          context,
                           MaterialPageRoute(
                               builder: (_) => const NotificationScreen())),
                     ),
@@ -319,7 +405,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             initialName: _name,
                             initialEmail: _email,
                             initialAvatarUrl: _avatarUrl,
-                            initialTabIndex: 1, // langsung tab Ubah Password
+                            initialTabIndex: 1,
                           ),
                         ),
                       ),
@@ -355,7 +441,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 class _SettingItem extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -389,8 +474,8 @@ class _SettingItem extends StatelessWidget {
                 color: iconBgColor ?? AppColors.primaryLight,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon,
-                  size: 18, color: iconColor ?? AppColors.primary),
+              child:
+                  Icon(icon, size: 18, color: iconColor ?? AppColors.primary),
             ),
             const SizedBox(width: 14),
             Expanded(

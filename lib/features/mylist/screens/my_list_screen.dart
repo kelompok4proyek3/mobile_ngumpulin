@@ -7,7 +7,6 @@ import '../../../models/saved_spot_model.dart';
 import '../../../models/spot_model.dart';
 import '../services/saved_spot_api_service.dart';
 import '../../detail/screens/detail_screen.dart';
-import '../services/saved_spot_api_service.dart';
 
 class MyListScreen extends StatefulWidget {
   const MyListScreen({super.key});
@@ -118,16 +117,16 @@ class _MyListScreenState extends State<MyListScreen> {
                         ),
                       ],
                     ),
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(Icons.bookmark_rounded,
-                          color: Colors.white, size: 20),
-                    ),
+                    // Container(
+                    //   width: 40,
+                    //   height: 40,
+                    //   decoration: BoxDecoration(
+                    //     color: AppColors.primary,
+                    //     borderRadius: BorderRadius.circular(10),
+                    //   ),
+                    //   child: const Icon(Icons.bookmark_rounded,
+                    //       color: Colors.white, size: 20),
+                    // ),
                   ],
                 ),
               ),
@@ -287,12 +286,12 @@ class _SavedCard extends StatelessWidget {
   });
 
   Color _getCategoryColor(String category) {
-    switch (category.toUpperCase()) {
-      case 'KAFE':
+    switch (category.toLowerCase()) {
+      case 'kafe':
         return AppColors.kafeBadge;
-      case 'RESTO':
+      case 'resto':
         return AppColors.restoBadge;
-      case 'OUTDOOR':
+      case 'outdoor':
         return AppColors.outdoorBadge;
       default:
         return AppColors.primary;

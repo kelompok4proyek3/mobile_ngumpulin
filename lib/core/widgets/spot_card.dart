@@ -248,7 +248,7 @@ class _SpotCardState extends State<SpotCard> {
 
   Widget _buildBadge(String label, Color color) {
     final displayLabel = label.isNotEmpty
-        ? label[0].toUpperCase() + label.substring(1).toLowerCase()
+        ? label[0].toLowerCase() + label.substring(1).toLowerCase()
         : label;
 
     return Container(
