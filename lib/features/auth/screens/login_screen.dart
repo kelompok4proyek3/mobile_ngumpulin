@@ -5,6 +5,7 @@ import '../../../core/constants/app_strings.dart';
 import '../services/auth_api_service.dart';
 import 'register_screen.dart';
 import '../services/google_auth_service.dart';
+import '../../../core/services/fcm_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -45,6 +46,9 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = false);
 
     if (result['success'] == true) {
+      await FcmService.initFCM(context);
+      if (!mounted) return;
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -67,6 +71,11 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = false);
 
     if (result['success'] == true) {
+      print('LOGIN SUKSES — memanggil initFCM');
+      await FcmService.initFCM(context);
+      print('initFCM selesai');
+      if (!mounted) return;
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const MainScreen()),

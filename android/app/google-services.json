@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "196717629896",
+    "project_id": "ngumpulin-b0edd",
+    "storage_bucket": "ngumpulin-b0edd.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:196717629896:android:796b2cbfcdee1ef80af0fd",
+        "android_client_info": {
+          "package_name": "com.ngumpulin.ngumpul_in"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAL5kHqor7KSVkU8QUNbtg556jhLg3GXqA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
