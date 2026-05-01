@@ -41,6 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _loadLocation();
     _loadKategoris();
+    // Home pakai item-based murni: sort by google_rating dari server
     _loadSpots();
   }
 
@@ -75,7 +76,6 @@ class _HomeScreenState extends State<HomeScreen> {
         _isLoadingKategoris = false;
       });
     } else {
-      // Fallback ke kategori hardcode kalau API gagal
       setState(() {
         _categories = [AppStrings.semua, AppStrings.kafe, AppStrings.resto, AppStrings.outdoor];
         _isLoadingKategoris = false;
@@ -83,6 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // Home: selalu sort=google_rating, tidak pakai CF sama sekali
   Future<void> _loadSpots({String? search, String? kategori}) async {
     setState(() {
       _isLoadingSpots = true;
@@ -92,6 +93,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final result = await _spotApiService.getSpots(
       search: search,
       kategori: kategori,
+      sort: 'google_rating', // ← item-based murni: ranking by google rating
     );
 
     if (!mounted) return;
@@ -113,6 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<SpotModel> get _filteredSpots {
     var spots = List<SpotModel>.from(_spots);
 
+    // Filter kategori di client (data sudah sorted dari server)
     if (_selectedCategoryIndex != 0) {
       final cat = _categories[_selectedCategoryIndex].toLowerCase();
       spots = spots.where((s) => s.kategoriUtama.toLowerCase() == cat).toList();
@@ -233,8 +236,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       if (_searchQuery.isNotEmpty)
                         GestureDetector(
-                          onTap: () { _searchCtrl.clear(); setState(() => _searchQuery = ''); },
-                          child: const Padding(padding: EdgeInsets.only(right: 12), child: Icon(Icons.close_rounded, size: 18, color: AppColors.textHint)),
+                          onTap: () {
+                            _searchCtrl.clear();
+                            setState(() => _searchQuery = '');
+                          },
+                          child: const Padding(
+                            padding: EdgeInsets.only(right: 12),
+                            child: Icon(Icons.close_rounded, size: 18, color: AppColors.textHint),
+                          ),
                         ),
                     ],
                   ),
@@ -290,13 +299,19 @@ class _HomeScreenState extends State<HomeScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      _searchQuery.isNotEmpty ? '${filtered.length} hasil untuk "$_searchQuery"' : 'Rekomendasi Untukmu',
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                      _searchQuery.isNotEmpty
+                          ? '${filtered.length} hasil untuk "$_searchQuery"'
+                          : 'Terpopuler di Sekitarmu',
+                      style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary),
                     ),
                     if (_searchQuery.isEmpty)
                       GestureDetector(
                         onTap: () {},
-                        child: const Text(AppStrings.lihatSemua, style: TextStyle(fontSize: 13, color: AppColors.primary, fontWeight: FontWeight.w600)),
+                        child: const Text(AppStrings.lihatSemua,
+                            style: TextStyle(fontSize: 13, color: AppColors.primary, fontWeight: FontWeight.w600)),
                       ),
                   ],
                 ),
@@ -305,7 +320,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
             // Loading State
             if (_isLoadingSpots)
-              const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.symmetric(vertical: 48), child: Center(child: CircularProgressIndicator())))
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 48),
+                  child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+                ),
+              )
 
             // Error State
             else if (_errorMessage != null)
@@ -316,7 +336,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       const Icon(Icons.wifi_off_rounded, size: 48, color: AppColors.textHint),
                       const SizedBox(height: 12),
-                      Text(_errorMessage!, style: const TextStyle(fontSize: 14, color: AppColors.textHint), textAlign: TextAlign.center),
+                      Text(_errorMessage!,
+                          style: const TextStyle(fontSize: 14, color: AppColors.textHint),
+                          textAlign: TextAlign.center),
                       const SizedBox(height: 16),
                       TextButton(onPressed: _loadSpots, child: const Text('Coba Lagi')),
                     ],
@@ -334,7 +356,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       const Icon(Icons.search_off_rounded, size: 48, color: AppColors.textHint),
                       const SizedBox(height: 12),
                       Text(
-                        _searchQuery.isNotEmpty ? 'Tidak ada tempat untuk "$_searchQuery"' : 'Belum ada spot tersedia.',
+                        _searchQuery.isNotEmpty
+                            ? 'Tidak ada tempat untuk "$_searchQuery"'
+                            : 'Belum ada spot tersedia.',
                         style: const TextStyle(fontSize: 14, color: AppColors.textHint),
                       ),
                     ],
@@ -342,7 +366,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               )
 
-            // Spots List
+            // Spots List — diurutkan by google_rating dari server
             else
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -352,7 +376,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       final spot = filtered[index];
                       return SpotCard(
                         spot: spot,
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => DetailScreen(spot: spot))),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => DetailScreen(spot: spot)),
+                        ),
                       );
                     },
                     childCount: filtered.length,

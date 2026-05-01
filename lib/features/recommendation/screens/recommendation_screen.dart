@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
@@ -15,7 +16,12 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
   final _service = RecommendationApiService();
   List<RecommendationModel> _recs = [];
   bool _isLoading = true;
+  bool _isPending = false; // sedang nunggu job selesai
   String? _error;
+
+  Timer? _pollingTimer;
+  int _pollCount = 0;
+  static const int _maxPollCount = 12; // max 12x polling = 60 detik
 
   @override
   void initState() {
@@ -23,26 +29,98 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
     _load();
   }
 
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    super.dispose();
+  }
+
   Future<void> _load() async {
-    setState(() { _isLoading = true; _error = null; });
+    setState(() {
+      _isLoading = true;
+      _error = null;
+      _isPending = false;
+    });
+    _pollingTimer?.cancel();
+
     try {
-      _recs = await _service.getRecommendations();
+      final result = await _service.getRecommendations();
+      if (!mounted) return;
+
+      if (result.isEmpty) {
+        // Status pending dari server — mulai polling
+        setState(() {
+          _isLoading = false;
+          _isPending = true;
+          _pollCount = 0;
+        });
+        _startPolling();
+      } else {
+        setState(() {
+          _recs = result;
+          _isLoading = false;
+          _isPending = false;
+        });
+      }
     } catch (e) {
-      _error = e.toString();
-    } finally {
-      setState(() => _isLoading = false);
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
     }
   }
 
+  void _startPolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
+      _pollCount++;
+      if (_pollCount > _maxPollCount) {
+        _pollingTimer?.cancel();
+        if (mounted) {
+          setState(() => _isPending = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Generate memakan waktu lebih lama, coba refresh manual.'),
+            ),
+          );
+        }
+        return;
+      }
+
+      try {
+        final result = await _service.getRecommendations();
+        if (!mounted) return;
+        if (result.isNotEmpty) {
+          _pollingTimer?.cancel();
+          setState(() {
+            _recs = result;
+            _isPending = false;
+          });
+        }
+        // Kalau masih kosong/pending, lanjut polling
+      } catch (_) {
+        // Abaikan error sementara saat polling, tetap coba lagi
+      }
+    });
+  }
+
   Future<void> _refresh() async {
+    _pollingTimer?.cancel();
+    setState(() {
+      _isPending = false;
+      _pollCount = 0;
+    });
+
     try {
       final msg = await _service.refreshRecommendations();
       if (!mounted) return;
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(msg)));
-      // Reload setelah delay singkat agar job sempat jalan
-      await Future.delayed(const Duration(seconds: 3));
-      _load();
+
+      // Langsung mulai polling — tidak perlu delay fixed 3 detik
+      setState(() => _isPending = true);
+      _startPolling();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
@@ -69,6 +147,35 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
               Text(_error!, style: const TextStyle(color: AppColors.textSecondary)),
               const SizedBox(height: 12),
               ElevatedButton(onPressed: _load, child: const Text('Coba Lagi')),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Status pending: job masih diproses, tampil loading + info
+    if (_isPending) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF5F0EB),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(color: AppColors.primary),
+              const SizedBox(height: 16),
+              const Text(
+                'Rekomendasi sedang disiapkan...',
+                style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Mohon tunggu, ini hanya perlu beberapa detik.',
+                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                textAlign: TextAlign.center,
+              ),
             ],
           ),
         ),

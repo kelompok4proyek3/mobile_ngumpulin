@@ -9,9 +9,18 @@ class RecommendationApiService {
     final response = await _dio.get('/recommendations');
     final body = response.data;
 
-    if (body['success'] == true) {
+    // Server pakai { "status": "ok" | "pending", "data": [...] }
+    final status = body['status'];
+
+    if (status == 'ok') {
       final data = List<Map<String, dynamic>>.from(body['data']);
       return data.map((e) => RecommendationModel.fromJson(e)).toList();
+    }
+
+    if (status == 'pending') {
+      // Rekomendasi sedang disiapkan, kembalikan list kosong
+      // UI bisa polling ulang atau tampilkan pesan loading
+      return [];
     }
 
     throw Exception(body['message'] ?? 'Gagal mengambil rekomendasi');

@@ -7,7 +7,7 @@ class NotificationApiService {
   // GET /api/notifications
   Future<Map<String, dynamic>> getNotifications() async {
     try {
-      final response = await _dio.get('/notifications');
+      final response = await _dio.get('/notifications'); 
       return response.data;
     } on DioException catch (e) {
       return _error(e);

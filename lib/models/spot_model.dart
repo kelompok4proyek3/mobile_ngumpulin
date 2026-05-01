@@ -10,9 +10,11 @@ class SpotModel {
   final String? jamTutup;
   final String? hargaRange;
   final String? deskripsi;
+  final double googleRating;
   final double avgRating;
   final int reviewCount;
   final bool isOpen;
+  final String? imageUrl;
   final List<String> kategoris;
 
   SpotModel({
@@ -25,31 +27,33 @@ class SpotModel {
     this.jamTutup,
     this.hargaRange,
     this.deskripsi,
+    this.googleRating = 0.0,
     required this.avgRating,
     required this.reviewCount,
     required this.isOpen,
+    this.imageUrl,
     required this.kategoris,
   });
 
   factory SpotModel.fromJson(Map<String, dynamic> json) {
     return SpotModel(
-      id: json['id'] as int,
-      namaSpot: json['nama_spot']?.toString() ?? '',
-      alamat: json['alamat']?.toString() ?? '',
-      // Safe parse: handle String, int, double, atau null
-      lokasiLat: _toDouble(json['lokasi_lat']),
-      lokasiLng: _toDouble(json['lokasi_lng']),
-      jamBuka: json['jam_buka']?.toString(),
-      jamTutup: json['jam_tutup']?.toString(),
-      hargaRange: json['harga_range']?.toString(),
-      deskripsi: json['deskripsi']?.toString(),
-      avgRating: _toDouble(json['avg_rating']) ?? 0.0,
-      reviewCount: _toInt(json['review_count']) ?? 0,
-      isOpen: json['is_open'] == true || json['is_open'] == 1,
-      kategoris: (json['kategoris'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          [],
+      id          : json['id'] as int,
+      namaSpot    : json['nama_spot']?.toString() ?? '',
+      alamat      : json['alamat']?.toString() ?? '',
+      lokasiLat   : _toDouble(json['lokasi_lat']),
+      lokasiLng   : _toDouble(json['lokasi_lng']),
+      jamBuka     : json['jam_buka']?.toString(),
+      jamTutup    : json['jam_tutup']?.toString(),
+      hargaRange  : json['harga_range']?.toString(),
+      deskripsi   : json['deskripsi']?.toString(),
+      googleRating: _toDouble(json['google_rating']) ?? 0.0,
+      avgRating   : _toDouble(json['avg_rating']) ?? 0.0,
+      reviewCount : _toInt(json['review_count']) ?? 0,
+      isOpen      : json['is_open'] == true || json['is_open'] == 1,
+      imageUrl    : json['image_url']?.toString(),
+      kategoris   : (json['kategoris'] as List<dynamic>?)
+                        ?.map((e) => e.toString())
+                        .toList() ?? [],
     );
   }
 
