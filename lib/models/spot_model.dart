@@ -50,7 +50,7 @@ class SpotModel {
       avgRating   : _toDouble(json['avg_rating']) ?? 0.0,
       reviewCount : _toInt(json['review_count']) ?? 0,
       isOpen      : json['is_open'] == true || json['is_open'] == 1,
-      imageUrl    : json['image_url']?.toString(),
+      imageUrl    : json['foto_url']?.toString(),
       kategoris   : (json['kategoris'] as List<dynamic>?)
                         ?.map((e) => e.toString())
                         .toList() ?? [],

@@ -61,18 +61,31 @@ class _SpotCardState extends State<SpotCard> {
                 ClipRRect(
                   borderRadius:
                       const BorderRadius.vertical(top: Radius.circular(20)),
-                  child: Container(
+                  child: SizedBox(
                     height: 180,
                     width: double.infinity,
-                    color: AppColors.divider,
-                    child: const Icon(
-                      Icons.store_mall_directory_rounded,
-                      size: 48,
-                      color: AppColors.textHint,
-                    ),
+                    child: spot.imageUrl != null
+                        ? Image.network(
+                            spot.imageUrl!,
+                            fit: BoxFit.cover,
+                            loadingBuilder: (context, child, progress) {
+                              if (progress == null) return child;
+                              return Container(
+                                color: AppColors.divider,
+                                child: const Center(
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              );
+                            },
+                            errorBuilder: (context, error, stack) =>
+                                _buildPlaceholder(),
+                          )
+                        : _buildPlaceholder(),
                   ),
                 ),
-                // Hanya satu badge kategori, tanpa HITS
                 Positioned(
                   top: 12,
                   left: 12,
@@ -246,6 +259,19 @@ class _SpotCardState extends State<SpotCard> {
     );
   }
 
+  Widget _buildPlaceholder() {
+    return Container(
+      color: AppColors.divider,
+      child: const Center(
+        child: Icon(
+          Icons.store_mall_directory_rounded,
+          size: 48,
+          color: AppColors.textHint,
+        ),
+      ),
+    );
+  }
+
   Widget _buildBadge(String label, Color color) {
     final displayLabel = label.isNotEmpty
         ? label[0].toLowerCase() + label.substring(1).toLowerCase()
@@ -258,7 +284,7 @@ class _SpotCardState extends State<SpotCard> {
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
-        displayLabel, // <-- pakai ini, bukan label langsung
+        displayLabel,
         style: const TextStyle(
           color: Colors.white,
           fontSize: 10,

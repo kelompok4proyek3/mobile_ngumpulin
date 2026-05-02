@@ -152,7 +152,7 @@ class _DetailScreenState extends State<DetailScreen> {
         slivers: [
           // ── SliverAppBar ─────────────────────────────────────────────────
           SliverAppBar(
-            expandedHeight: 260,
+            expandedHeight: MediaQuery.of(context).size.width * 9 / 16,
             pinned: true,
             backgroundColor: AppColors.white,
             leading: GestureDetector(
@@ -190,13 +190,37 @@ class _DetailScreenState extends State<DetailScreen> {
             centerTitle: true,
             title: const Text(AppStrings.detailTempat),
             flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                color: AppColors.primaryLight,
-                child: const Center(
-                  child: Icon(Icons.storefront_rounded,
-                      size: 80, color: AppColors.primary),
-                ),
-              ),
+              background: widget.spot.imageUrl != null
+                  ? Image.network(
+                      widget.spot.imageUrl!,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, progress) {
+                        if (progress == null) return child;
+                        return Container(
+                          color: AppColors.primaryLight,
+                          child: const Center(
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stack) => Container(
+                        color: AppColors.primaryLight,
+                        child: const Center(
+                          child: Icon(Icons.storefront_rounded,
+                              size: 80, color: AppColors.primary),
+                        ),
+                      ),
+                    )
+                  : Container(
+                      color: AppColors.primaryLight,
+                      child: const Center(
+                        child: Icon(Icons.storefront_rounded,
+                            size: 80, color: AppColors.primary),
+                      ),
+                    ),
             ),
           ),
 
