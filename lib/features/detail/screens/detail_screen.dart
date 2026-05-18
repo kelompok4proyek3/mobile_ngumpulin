@@ -639,18 +639,26 @@ class _RatingItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = (data['user'] as Map<String, dynamic>?) ?? {};
-    final score = (data['score'] as int?) ?? 0;
-    final name = (user['name'] as String?) ?? 'Pengguna';
-    final fotoUrl = user['foto_profile'] as String?;
-    final timeAgo = (data['created_at'] as String?) ?? '';
-    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+    final user        = (data['user'] as Map<String, dynamic>?) ?? {};
+    final score       = (data['score'] as int?) ?? 0;
+    final name        = (user['name'] as String?) ?? 'Pengguna';
+    final fotoUrl     = user['foto_profile'] as String?;
+    final timeAgo     = (data['created_at'] as String?) ?? '';
+    final reviewText  = data['review_text'] as String?;
+    // Baca foto_urls sebagai array; fallback ke foto_url kalau masih single
+    final reviewFotos = (data['foto_urls'] as List?)
+            ?.map((e) => e.toString())
+            .where((e) => e.isNotEmpty)
+            .toList() ??
+        (data['foto_url'] != null ? [data['foto_url'].toString()] : []);
+    final initial     = name.isNotEmpty ? name[0].toUpperCase() : '?';
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ── Header: avatar + nama + bintang ──────────────────────────
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -659,8 +667,7 @@ class _RatingItem extends StatelessWidget {
                   CircleAvatar(
                     radius: 18,
                     backgroundColor: AppColors.primary.withOpacity(0.15),
-                    backgroundImage:
-                        fotoUrl != null ? NetworkImage(fotoUrl) : null,
+                    backgroundImage: fotoUrl != null ? NetworkImage(fotoUrl) : null,
                     child: fotoUrl == null
                         ? Text(initial,
                             style: const TextStyle(
@@ -697,7 +704,78 @@ class _RatingItem extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 8),
+
+          // ── Review text ───────────────────────────────────────────────
+          if (reviewText != null && reviewText.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              reviewText,
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+                height: 1.5,
+              ),
+            ),
+          ],
+
+          // ── Foto review ───────────────────────────────────────────────
+          if (reviewFotos.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 160,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: reviewFotos.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, i) {
+                  final url = reviewFotos[i];
+                  return GestureDetector(
+                    onTap: () => showDialog(
+                      context: context,
+                      builder: (_) => Dialog(
+                        backgroundColor: Colors.transparent,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.network(url, fit: BoxFit.contain),
+                        ),
+                      ),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.network(
+                        url,
+                        height: 160,
+                        width: reviewFotos.length == 1 ? double.infinity : 200,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (_, child, progress) => progress == null
+                            ? child
+                            : Container(
+                                height: 160,
+                                width: reviewFotos.length == 1 ? double.infinity : 200,
+                                color: AppColors.primaryLight,
+                                child: const Center(
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: AppColors.primary),
+                                ),
+                              ),
+                        errorBuilder: (_, __, ___) => Container(
+                          height: 160,
+                          width: 200,
+                          color: AppColors.primaryLight,
+                          child: const Center(
+                            child: Icon(Icons.broken_image_outlined,
+                                color: AppColors.textHint),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 10),
           const Divider(color: AppColors.divider, height: 1),
         ],
       ),

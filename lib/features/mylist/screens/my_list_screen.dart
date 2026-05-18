@@ -117,16 +117,6 @@ class _MyListScreenState extends State<MyListScreen> {
                         ),
                       ],
                     ),
-                    // Container(
-                    //   width: 40,
-                    //   height: 40,
-                    //   decoration: BoxDecoration(
-                    //     color: AppColors.primary,
-                    //     borderRadius: BorderRadius.circular(10),
-                    //   ),
-                    //   child: const Icon(Icons.bookmark_rounded,
-                    //       color: Colors.white, size: 20),
-                    // ),
                   ],
                 ),
               ),
@@ -191,7 +181,9 @@ class _MyListScreenState extends State<MyListScreen> {
               const SliverToBoxAdapter(
                 child: Padding(
                   padding: EdgeInsets.symmetric(vertical: 60),
-                  child: Center(child: CircularProgressIndicator()),
+                  child: Center(
+                    child: CircularProgressIndicator(color: AppColors.primary),
+                  ),
                 ),
               )
 
@@ -256,7 +248,7 @@ class _MyListScreenState extends State<MyListScreen> {
                             MaterialPageRoute(
                               builder: (_) => DetailScreen(spot: item.spot),
                             ),
-                          ).then((_) => _loadSavedSpots()); // ← tambah ini
+                          ).then((_) => _loadSavedSpots());
                         },
                         onDelete: () => _deleteItem(item.spot.id, i),
                       );
@@ -323,7 +315,6 @@ class _SavedCard extends StatelessWidget {
           children: [
             Stack(
               children: [
-                // Placeholder karena SpotModel tidak punya imageUrl
                 ClipRRect(
                   borderRadius:
                       const BorderRadius.vertical(top: Radius.circular(20)),
@@ -367,7 +358,7 @@ class _SavedCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          spot.namaSpot, // ← dari DB
+                          spot.namaSpot,
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
@@ -384,7 +375,7 @@ class _SavedCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          spot.kategoriUtama, // ← dari DB
+                          spot.kategoriUtama,
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
@@ -402,7 +393,7 @@ class _SavedCard extends StatelessWidget {
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
-                          spot.alamat, // ← dari DB
+                          spot.alamat,
                           style: const TextStyle(
                               fontSize: 11, color: AppColors.textHint),
                           overflow: TextOverflow.ellipsis,
@@ -417,7 +408,7 @@ class _SavedCard extends StatelessWidget {
                           size: 12, color: AppColors.textHint),
                       const SizedBox(width: 4),
                       Text(
-                        spot.jamOperasional, // ← dari DB
+                        spot.jamOperasional,
                         style: const TextStyle(
                             fontSize: 11, color: AppColors.textHint),
                       ),

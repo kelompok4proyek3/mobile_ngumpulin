@@ -1,7 +1,4 @@
 // lib/features/profile/screens/profile_screen.dart
-//
-// FIX: preferences dari API (PreferenceApiService.getUserPreferences())
-// bukan dari DummyData yang hardcode
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -27,7 +24,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? _avatarUrl;
   bool _isLoading   = true;
 
-  // Preferences dari API
   List<Map<String, dynamic>> _preferences = [];
   bool _isLoadingPrefs = true;
 
@@ -46,54 +42,73 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _loadUserData() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (mounted) {
-      setState(() {
-        _name      = prefs.getString('user_name')  ?? '';
-        _email     = prefs.getString('user_email') ?? '';
-        _avatarUrl = prefs.getString('user_avatar');
-      });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (mounted) {
+        setState(() {
+          _name      = prefs.getString('user_name')  ?? '';
+          _email     = prefs.getString('user_email') ?? '';
+          _avatarUrl = prefs.getString('user_avatar');
+        });
+      }
+    } catch (_) {
+      // SharedPreferences gagal — biarkan kosong, tidak perlu crash
     }
   }
 
-  // GET /api/preferences/user
   Future<void> _loadPreferences() async {
     setState(() => _isLoadingPrefs = true);
-    final result = await _prefService.getUserPreferences();
-    if (!mounted) return;
+    try {
+      final result = await _prefService.getUserPreferences();
+      if (!mounted) return;
 
-    if (result['success'] == true) {
-      final List<dynamic> data = result['data'] ?? [];
-      setState(() {
-        _preferences = data.map((p) => {
-          'id'  : p['id'],
-          'nama': (p['nama_preference'] ?? p['nama'] ?? '').toString(),
-          'icon': _emojiFor((p['nama_preference'] ?? p['nama'] ?? '').toString()),
-        }).toList();
-      });
-    } else {
-      setState(() => _preferences = []);
+      if (result['success'] == true) {
+        final List<dynamic> data = result['data'] ?? [];
+        setState(() {
+          _preferences = data.map((p) => {
+            'id'  : p['id'],
+            'nama': (p['nama_preference'] ?? p['nama'] ?? '').toString(),
+            'icon': _emojiFor((p['nama_preference'] ?? p['nama'] ?? '').toString()),
+          }).toList();
+        });
+      } else {
+        setState(() => _preferences = []);
+        // Tampilkan pesan error hanya kalau bukan "belum ada preferensi"
+        if (mounted && result['message'] != null &&
+            !result['message'].toString().contains('tidak ditemukan')) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result['message'].toString())),
+          );
+        }
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _preferences = []);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gagal memuat preferensi, coba lagi.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoadingPrefs = false);
     }
-    setState(() => _isLoadingPrefs = false);
   }
 
-  // Mapping nama preferensi → emoji
   String _emojiFor(String nama) {
     final n = nama.toLowerCase();
-    if (n.contains('kafe') || n.contains('coffee'))           return '☕';
-    if (n.contains('resto') || n.contains('kuliner'))         return '🍽️';
-    if (n.contains('outdoor'))                                 return '🌲';
-    if (n.contains('rooftop'))                                 return '🏙️';
-    if (n.contains('budget'))                                  return '💰';
-    if (n.contains('night') || n.contains('malam'))           return '🌙';
-    if (n.contains('wifi'))                                    return '📶';
-    if (n.contains('music') || n.contains('musik'))           return '🎵';
-    if (n.contains('konser'))                                  return '🎤';
-    if (n.contains('kid') || n.contains('anak'))              return '👶';
-    if (n.contains('stop') || n.contains('charge'))           return '🔌';
-    if (n.contains('olah') || n.contains('sport'))            return '🏃';
-    if (n.contains('teknologi') || n.contains('tech'))        return '💻';
-    if (n.contains('seni') || n.contains('art'))              return '🎨';
+    if (n.contains('kafe') || n.contains('coffee'))        return '☕';
+    if (n.contains('resto') || n.contains('kuliner'))      return '🍽️';
+    if (n.contains('outdoor'))                              return '🌲';
+    if (n.contains('rooftop'))                              return '🏙️';
+    if (n.contains('budget'))                               return '💰';
+    if (n.contains('night') || n.contains('malam'))        return '🌙';
+    if (n.contains('wifi'))                                 return '📶';
+    if (n.contains('music') || n.contains('musik'))        return '🎵';
+    if (n.contains('konser'))                               return '🎤';
+    if (n.contains('kid') || n.contains('anak'))           return '👶';
+    if (n.contains('stop') || n.contains('charge'))        return '🔌';
+    if (n.contains('olah') || n.contains('sport'))         return '🏃';
+    if (n.contains('teknologi') || n.contains('tech'))     return '💻';
+    if (n.contains('seni') || n.contains('art'))           return '🎨';
     return '📍';
   }
 
@@ -173,7 +188,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               const SizedBox(height: 20),
 
-              // ── Avatar ────────────────────────────────────────────────────
+              // ── Avatar ───────────────────────────────────────────────────
               Stack(
                 alignment: Alignment.center,
                 children: [
@@ -225,7 +240,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       fontSize: 13, color: AppColors.primary)),
               const SizedBox(height: 20),
 
-              // ── Edit Profil ───────────────────────────────────────────────
+              // ── Edit Profil ──────────────────────────────────────────────
               ElevatedButton.icon(
                 onPressed: () async {
                   final updated = await Navigator.push<bool>(
@@ -246,7 +261,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               const SizedBox(height: 24),
 
-              // ── Minat & Preferensi dari API ───────────────────────────────
+              // ── Minat & Preferensi ───────────────────────────────────────
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -273,7 +288,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     const PreferenceScreen(isEditing: true),
                               ),
                             );
-                            // Reload dari API setelah ubah preferensi
                             if (updated == true) _loadPreferences();
                           },
                           child: const Text(AppStrings.ubah,
@@ -286,7 +300,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const SizedBox(height: 14),
 
-                    // Loading
                     if (_isLoadingPrefs)
                       const Center(
                         child: SizedBox(
@@ -296,8 +309,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               strokeWidth: 2, color: AppColors.primary),
                         ),
                       )
-
-                    // Empty — ajak tambah preferensi
                     else if (_preferences.isEmpty)
                       GestureDetector(
                         onTap: () async {
@@ -328,8 +339,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ),
                       )
-
-                    // Chip preferences dari API
                     else
                       Wrap(
                         spacing: 8,
@@ -366,7 +375,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               const SizedBox(height: 16),
 
-              // ── Pengaturan Akun ───────────────────────────────────────────
+              // ── Pengaturan Akun ──────────────────────────────────────────
               Container(
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(

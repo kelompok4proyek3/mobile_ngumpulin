@@ -1,15 +1,13 @@
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../config/app_config.dart';
 
 class ApiClient {
-  static const String baseUrl =
-      'https://bali2.srv527905.hstgr.cloud/api'; // ganti IP server lptop
-
   static Dio createDio() {
     final dio = Dio(BaseOptions(
-      baseUrl: baseUrl,
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
+      baseUrl: AppConfig.baseUrl,
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 30), // CF job butuh waktu
       headers: {'Accept': 'application/json'},
     ));
 
@@ -21,6 +19,16 @@ class ApiClient {
           options.headers['Authorization'] = 'Bearer $token';
         }
         return handler.next(options);
+      },
+      onError: (DioException e, handler) async {
+        // Token expired → paksa logout
+        if (e.response?.statusCode == 401) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.remove('auth_token');
+          // TODO: navigasi ke halaman login
+          // NavigationService.pushReplacementNamed('/login');
+        }
+        return handler.next(e);
       },
     ));
 

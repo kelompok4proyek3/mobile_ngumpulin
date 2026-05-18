@@ -16,12 +16,12 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
   final _service = RecommendationApiService();
   List<RecommendationModel> _recs = [];
   bool _isLoading = true;
-  bool _isPending = false; // sedang nunggu job selesai
+  bool _isPending = false;
   String? _error;
 
   Timer? _pollingTimer;
   int _pollCount = 0;
-  static const int _maxPollCount = 12; // max 12x polling = 60 detik
+  static const int _maxPollCount = 12;
 
   @override
   void initState() {
@@ -48,7 +48,6 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
       if (!mounted) return;
 
       if (result.isEmpty) {
-        // Status pending dari server — mulai polling
         setState(() {
           _isLoading = false;
           _isPending = true;
@@ -98,10 +97,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
             _isPending = false;
           });
         }
-        // Kalau masih kosong/pending, lanjut polling
-      } catch (_) {
-        // Abaikan error sementara saat polling, tetap coba lagi
-      }
+      } catch (_) {}
     });
   }
 
@@ -117,8 +113,6 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(msg)));
-
-      // Langsung mulai polling — tidak perlu delay fixed 3 detik
       setState(() => _isPending = true);
       _startPolling();
     } catch (e) {
@@ -153,7 +147,6 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
       );
     }
 
-    // Status pending: job masih diproses, tampil loading + info
     if (_isPending) {
       return Scaffold(
         backgroundColor: const Color(0xFFF5F0EB),
@@ -305,17 +298,10 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
                         ClipRRect(
                           borderRadius: const BorderRadius.vertical(
                               top: Radius.circular(20)),
-                          child: Image.network(
-                            top.spot.imageUrl ?? '',
+                          child: _SpotImage(
+                            imageUrl: top.spot.imageUrl,
                             height: 200,
                             width: double.infinity,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              height: 200,
-                              color: AppColors.divider,
-                              child: const Icon(Icons.image_not_supported,
-                                  color: AppColors.textHint),
-                            ),
                           ),
                         ),
                         Positioned(
@@ -466,6 +452,75 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Widget foto yang handle null, loading, dan error dengan benar
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _SpotImage extends StatelessWidget {
+  final String? imageUrl;
+  final double height;
+  final double? width;
+  final double iconSize;
+
+  const _SpotImage({
+    required this.imageUrl,
+    required this.height,
+    this.width,
+    this.iconSize = 48,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Null atau kosong → langsung placeholder
+    if (imageUrl == null || imageUrl!.isEmpty) {
+      return _placeholder();
+    }
+
+    return Image.network(
+      imageUrl!,
+      height: height,
+      width: width,
+      fit: BoxFit.cover,
+      // Tampilkan loading indicator saat gambar sedang diunduh
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) return child;
+        return Container(
+          height: height,
+          width: width,
+          color: AppColors.primaryLight,
+          child: Center(
+            child: CircularProgressIndicator(
+              color: AppColors.primary,
+              value: loadingProgress.expectedTotalBytes != null
+                  ? loadingProgress.cumulativeBytesLoaded /
+                      loadingProgress.expectedTotalBytes!
+                  : null,
+            ),
+          ),
+        );
+      },
+      // Error → placeholder
+      errorBuilder: (_, __, ___) => _placeholder(),
+    );
+  }
+
+  Widget _placeholder() {
+    return Container(
+      height: height,
+      width: width,
+      color: AppColors.primaryLight,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.store_mall_directory_rounded,
+              size: iconSize,
+              color: AppColors.primary.withOpacity(0.35)),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _SmallRecCard extends StatelessWidget {
   final RecommendationModel rec;
@@ -502,14 +557,11 @@ class _SmallRecCard extends StatelessWidget {
         const SizedBox(width: 12),
         ClipRRect(
           borderRadius: BorderRadius.circular(10),
-          child: Image.network(
-            rec.spot.imageUrl ?? '',
-            width: 64, height: 64, fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => Container(
-                width: 64, height: 64,
-                color: AppColors.divider,
-                child: const Icon(Icons.image_not_supported,
-                    color: AppColors.textHint, size: 20)),
+          child: _SpotImage(
+            imageUrl: rec.spot.imageUrl,
+            height: 64,
+            width: 64,
+            iconSize: 28,
           ),
         ),
         const SizedBox(width: 12),

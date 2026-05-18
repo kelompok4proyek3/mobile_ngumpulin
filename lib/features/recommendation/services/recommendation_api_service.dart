@@ -1,31 +1,29 @@
 import '../../../core/network/api_client.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../models/recommendation_model.dart';
+import 'package:dio/dio.dart';
 
 class RecommendationApiService {
   final _dio = ApiClient.createDio();
 
   // GET /api/recommendations
-  Future<List<RecommendationModel>> getRecommendations() async {
+Future<List<RecommendationModel>> getRecommendations() async {
+  try {
     final response = await _dio.get('/recommendations');
-    final body = response.data;
-
-    // Server pakai { "status": "ok" | "pending", "data": [...] }
+    final body   = response.data;
     final status = body['status'];
 
     if (status == 'ok') {
       final data = List<Map<String, dynamic>>.from(body['data']);
       return data.map((e) => RecommendationModel.fromJson(e)).toList();
     }
+    if (status == 'pending') return []; // UI mulai polling
 
-    if (status == 'pending') {
-      // Rekomendasi sedang disiapkan, kembalikan list kosong
-      // UI bisa polling ulang atau tampilkan pesan loading
-      return [];
-    }
-
-    throw Exception(body['message'] ?? 'Gagal mengambil rekomendasi');
+    throw ApiException(message: body['message'] ?? 'Gagal mengambil rekomendasi.');
+  } on DioException catch (e) {
+    throw ApiException.fromDioError(e);
   }
-
+}
   // POST /api/recommendations/refresh
   Future<String> refreshRecommendations() async {
     final response = await _dio.post('/recommendations/refresh');

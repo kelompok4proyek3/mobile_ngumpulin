@@ -1,12 +1,6 @@
 // lib/features/detail/services/rating_api_service.dart
-//
-// Terhubung ke Laravel RatingController:
-//   GET    /api/spots/{id}/ratings      → getRatingsBySpot()
-//   POST   /api/spots/{id}/ratings      → storeOrUpdate()
-//   GET    /api/spots/{id}/ratings/my   → getMyRating()
-//   DELETE /api/spots/{id}/ratings      → deleteMyRating()
-//   GET    /api/ratings/my              → getMyAllRatings()
 
+import 'dart:io';
 import 'package:dio/dio.dart';
 import '../../../core/network/api_client.dart';
 
@@ -14,7 +8,6 @@ class RatingApiService {
   final Dio _dio = ApiClient.createDio();
 
   // ── GET /spots/{spotId}/ratings ─────────────────────────────────────────
-  // Dipakai di DetailScreen untuk tampilkan distribusi bintang + daftar ulasan
   Future<Map<String, dynamic>> getRatingsBySpot(int spotId) async {
     try {
       final response = await _dio.get('/spots/$spotId/ratings');
@@ -25,12 +18,36 @@ class RatingApiService {
   }
 
   // ── POST /spots/{spotId}/ratings ────────────────────────────────────────
-  // Kirim rating (1-5 bintang). Kalau sudah pernah → otomatis update.
-  Future<Map<String, dynamic>> submitRating(int spotId, int score) async {
+  // score      → wajib
+  // reviewText → opsional
+  // fotos      → opsional, max 3 file, max 1MB per file (validasi di UI)
+  Future<Map<String, dynamic>> submitRating(
+    int spotId,
+    int score, {
+    String? reviewText,
+    List<File>? fotos,
+  }) async {
     try {
+      final Map<String, dynamic> fields = {'score': score};
+
+      if (reviewText != null && reviewText.isNotEmpty) {
+        fields['review_text'] = reviewText;
+      }
+
+      // Kirim sebagai foto[0], foto[1], foto[2] — Laravel terima sebagai array
+      if (fotos != null && fotos.isNotEmpty) {
+        for (int i = 0; i < fotos.length; i++) {
+          fields['foto[$i]'] = await MultipartFile.fromFile(
+            fotos[i].path,
+            filename: fotos[i].path.split('/').last,
+          );
+        }
+      }
+
       final response = await _dio.post(
         '/spots/$spotId/ratings',
-        data: {'score': score},
+        data: FormData.fromMap(fields),
+        options: Options(contentType: 'multipart/form-data'),
       );
       return response.data;
     } on DioException catch (e) {
@@ -39,7 +56,6 @@ class RatingApiService {
   }
 
   // ── GET /spots/{spotId}/ratings/my ─────────────────────────────────────
-  // Cek apakah user sudah rating spot ini (untuk pre-fill bintang di dialog)
   Future<Map<String, dynamic>> getMyRating(int spotId) async {
     try {
       final response = await _dio.get('/spots/$spotId/ratings/my');
@@ -60,7 +76,6 @@ class RatingApiService {
   }
 
   // ── GET /ratings/my ─────────────────────────────────────────────────────
-  // Semua rating yang pernah dikirim user yang login
   Future<Map<String, dynamic>> getMyAllRatings() async {
     try {
       final response = await _dio.get('/ratings/my');
