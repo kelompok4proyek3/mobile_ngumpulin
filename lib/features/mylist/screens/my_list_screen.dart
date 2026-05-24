@@ -29,30 +29,39 @@ class _MyListScreenState extends State<MyListScreen> {
     _loadSavedSpots();
   }
 
-  Future<void> _loadSavedSpots() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+ Future<void> _loadSavedSpots() async {
+  setState(() {
+    _isLoading = true;
+    _errorMessage = null;
+  });
 
+  try {
     final result = await _apiService.getSavedSpots();
-
     if (!mounted) return;
 
     if (result['success'] == true) {
       final List<dynamic> data = result['data'] ?? [];
       setState(() {
-        _savedSpots =
-            data.map((json) => SavedSpotModel.fromJson(json)).toList();
+        _savedSpots = data.map((json) => SavedSpotModel.fromJson(json)).toList();
         _isLoading = false;
       });
     } else {
+      // 401 unauthenticated → tampil kosong, bukan error
       setState(() {
-        _errorMessage = result['message'] ?? 'Gagal memuat daftar tersimpan.';
+        _savedSpots = [];
+        _isLoading = false;
+        _errorMessage = null;
+      });
+    }
+  } catch (_) {
+    if (mounted) {
+      setState(() {
+        _errorMessage = 'Tidak dapat terhubung ke server.\nPeriksa koneksi internetmu.';
         _isLoading = false;
       });
     }
   }
+}
 
   Future<void> _deleteItem(int spotId, int index) async {
     // Optimistic: hapus dari UI dulu

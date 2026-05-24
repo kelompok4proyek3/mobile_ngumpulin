@@ -1,7 +1,7 @@
 class AppStrings {
   static const String appName = 'Ngumpul.in';
   static const String appTagline = 'Temukan Spot Nongkrong Terbaikmu';
-  static const String copyright = '© 2024 Ngumpul.in Indonesia';
+  static const String copyright = '© 2026 Ngumpul.in Indonesia';
 
   // Splash
   static const String mulaiSekarang = 'Mulai Sekarang';
@@ -84,6 +84,5 @@ class AppStrings {
   static const String notifikasi = 'Notifikasi';
   static const String keamanan = 'Keamanan';
   static const String keluarAkun = 'Keluar Akun';
-  static const String Timer = '';
 
 }

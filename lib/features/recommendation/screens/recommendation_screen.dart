@@ -213,11 +213,6 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
                     children: [
                       Container(
                         width: 40, height: 40,
-                        decoration: BoxDecoration(
-                          color: AppColors.white,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(Icons.menu_rounded, size: 20, color: AppColors.textPrimary),
                       ),
                       const Text(AppStrings.appName,
                           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),

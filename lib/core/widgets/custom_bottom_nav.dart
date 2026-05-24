@@ -12,6 +12,13 @@ class CustomBottomNav extends StatelessWidget {
     required this.onTap,
   });
 
+  static const _items = [
+    _NavData(Icons.home_rounded, Icons.home_outlined, AppStrings.home),
+    _NavData(Icons.auto_awesome_rounded, Icons.auto_awesome_outlined, AppStrings.rekomendasi),
+    _NavData(Icons.bookmark_rounded, Icons.bookmark_outline_rounded, AppStrings.list),
+    _NavData(Icons.person_rounded, Icons.person_outline_rounded, AppStrings.profil),
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -20,46 +27,38 @@ class CustomBottomNav extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.08),
-            blurRadius: 20,
-            offset: const Offset(0, -4),
+            blurRadius: 24,
+            offset: const Offset(0, -6),
           ),
         ],
       ),
       child: SafeArea(
+        top: false,
         child: SizedBox(
-          height: 60,
+          height: 64,
           child: Row(
-            children: [
-              _NavItem(
-                icon: Icons.home_rounded,
-                label: AppStrings.home,
-                isSelected: currentIndex == 0,
-                onTap: () => onTap(0),
-              ),
-              _NavItem(
-                icon: Icons.auto_awesome_rounded,
-                label: AppStrings.rekomendasi,
-                isSelected: currentIndex == 1,
-                onTap: () => onTap(1),
-              ),
-              _NavItem(
-                icon: Icons.format_list_bulleted_rounded,
-                label: AppStrings.list,
-                isSelected: currentIndex == 2,
-                onTap: () => onTap(2),
-              ),
-              _NavItem(
-                icon: Icons.person_outline_rounded,
-                label: AppStrings.profil,
-                isSelected: currentIndex == 3,
-                onTap: () => onTap(3),
-              ),
-            ],
+            children: List.generate(_items.length, (i) {
+              final item = _items[i];
+              final selected = currentIndex == i;
+              return _NavItem(
+                icon: selected ? item.iconFilled : item.iconOutline,
+                label: item.label,
+                isSelected: selected,
+                onTap: () => onTap(i),
+              );
+            }),
           ),
         ),
       ),
     );
   }
+}
+
+class _NavData {
+  final IconData iconFilled;
+  final IconData iconOutline;
+  final String label;
+  const _NavData(this.iconFilled, this.iconOutline, this.label);
 }
 
 class _NavItem extends StatelessWidget {
@@ -78,25 +77,38 @@ class _NavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: InkWell(
+      child: GestureDetector(
         onTap: onTap,
+        behavior: HitTestBehavior.opaque,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              color: isSelected ? AppColors.primary : AppColors.textHint,
-              size: 24,
-            ),
-            const SizedBox(height: 3),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight:
-                    isSelected ? FontWeight.w600 : FontWeight.w400,
+            // Pill indicator + icon
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? AppColors.primary.withOpacity(0.12)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(50),
+              ),
+              child: Icon(
+                icon,
+                size: 22,
                 color: isSelected ? AppColors.primary : AppColors.textHint,
               ),
+            ),
+            const SizedBox(height: 2),
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 200),
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
+                color: isSelected ? AppColors.primary : AppColors.textHint,
+              ),
+              child: Text(label),
             ),
           ],
         ),

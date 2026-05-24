@@ -17,8 +17,16 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
 
-  // Key untuk trigger reload MyListScreen
   final GlobalKey<_MyListRefreshState> _myListKey = GlobalKey();
+
+  // Tab yang butuh login
+  static const _authRequiredTabs = {1, 3};
+
+  Future<bool> _isLoggedIn() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
+    return token != null && token.isNotEmpty;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,13 +43,12 @@ class _MainScreenState extends State<MainScreen> {
       bottomNavigationBar: CustomBottomNav(
         currentIndex: _currentIndex,
         onTap: (index) async {
-          if (index == 3) {
-            final prefs = await SharedPreferences.getInstance();
-            final token = prefs.getString('auth_token');
-
+          // Cek login untuk tab rekomendasi & profil
+          if (_authRequiredTabs.contains(index)) {
+            final loggedIn = await _isLoggedIn();
             if (!mounted) return;
 
-            if (token == null || token.isEmpty) {
+            if (!loggedIn) {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -50,7 +57,7 @@ class _MainScreenState extends State<MainScreen> {
             }
           }
 
-          // Kalau pindah ke tab List, reload datanya
+          // Reload list saat pindah ke tab List
           if (index == 2) {
             _myListKey.currentState?.reload();
           }
@@ -62,7 +69,6 @@ class _MainScreenState extends State<MainScreen> {
   }
 }
 
-// Wrapper tipis untuk expose method reload() ke luar
 class _MyListRefresh extends StatefulWidget {
   const _MyListRefresh({super.key});
 
@@ -71,7 +77,6 @@ class _MyListRefresh extends StatefulWidget {
 }
 
 class _MyListRefreshState extends State<_MyListRefresh> {
-  // Key untuk rebuild MyListScreen setiap reload dipanggil
   Key _key = UniqueKey();
 
   void reload() {

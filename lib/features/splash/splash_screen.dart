@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:ngumpul_in/features/home/screens/main_screen.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_strings.dart';
+import '../home/screens/main_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -38,6 +38,13 @@ class _SplashScreenState extends State<SplashScreen>
     super.dispose();
   }
 
+Future<void> _navigateNext() async {
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(builder: (_) => const MainScreen()),
+  );
+}
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -48,7 +55,6 @@ class _SplashScreenState extends State<SplashScreen>
           child: Column(
             children: [
               const SizedBox(height: 40),
-              // Hero Image
               Expanded(
                 flex: 5,
                 child: FadeTransition(
@@ -72,7 +78,6 @@ class _SplashScreenState extends State<SplashScreen>
                 ),
               ),
               const SizedBox(height: 32),
-              // Logo & Title
               AnimatedBuilder(
                 animation: _controller,
                 builder: (context, child) {
@@ -122,18 +127,10 @@ class _SplashScreenState extends State<SplashScreen>
                 ),
               ),
               const Spacer(),
-              // CTA Button
               FadeTransition(
                 opacity: _fadeAnimation,
                 child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const MainScreen(),
-                      ),
-                    );
-                  },
+                  onPressed: _navigateNext,
                   child: const Text(AppStrings.mulaiSekarang),
                 ),
               ),
