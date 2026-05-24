@@ -29,64 +29,79 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  Future<void> _handleLogin() async {
-    final email = _emailController.text.trim();
+    Future<void> _handleLogin() async {
+    final email    = _emailController.text.trim();
     final password = _passwordController.text;
-
+ 
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Email dan password wajib diisi')),
       );
       return;
     }
-
+ 
     setState(() => _isLoading = true);
-    final result = await _authApiService.login(email, password);
-    if (!mounted) return;
-    setState(() => _isLoading = false);
-
-    if (result['success'] == true) {
-      await FcmService.initFCM(context);
+ 
+    try {
+      final result = await _authApiService.login(email, password);
       if (!mounted) return;
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-            builder: (_) => const MainScreen()), // ← hapus AuthGuard
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result['message'] ?? 'Login gagal'),
-          backgroundColor: Colors.red,
-        ),
-      );
+ 
+      if (result['success'] == true) {
+        await FcmService.initFCM(context);
+        if (!mounted) return;
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainScreen()));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Login gagal'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (_) {
+      // ← tangkap SocketException saat server tidak bisa dicapai
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Tidak dapat terhubung ke server. Periksa koneksi internetmu.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _handleGoogleLogin() async {
+    Future<void> _handleGoogleLogin() async {
     setState(() => _isLoading = true);
-    final result = await GoogleAuthService().signInWithGoogle();
-    if (!mounted) return;
-    setState(() => _isLoading = false);
-
-    if (result['success'] == true) {
-      print('LOGIN SUKSES — memanggil initFCM');
-      await FcmService.initFCM(context);
-      print('initFCM selesai');
+    try {
+      final result = await GoogleAuthService().signInWithGoogle();
       if (!mounted) return;
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const MainScreen()),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result['message'] ?? 'Login Google gagal'),
-          backgroundColor: Colors.red,
-        ),
-      );
+ 
+      if (result['success'] == true) {
+        await FcmService.initFCM(context);
+        if (!mounted) return;
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainScreen()));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Login Google gagal'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Tidak dapat terhubung ke server. Periksa koneksi internetmu.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

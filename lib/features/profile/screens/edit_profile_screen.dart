@@ -72,28 +72,38 @@ class _EditProfileScreenState extends State<EditProfileScreen>
   }
 
   // ── Save profile ────────────────────────────────────────────────────────────
-  Future<void> _saveProfile() async {
+    Future<void> _saveProfile() async {
     if (!_profileFormKey.currentState!.validate()) return;
     setState(() => _isSaving = true);
-
-    final result = await _service.updateProfile(
-      name: _nameCtrl.text.trim(),
-      email: _emailCtrl.text.trim(),
-      photoFile: _pickedPhoto,
-    );
-
-    setState(() => _isSaving = false);
-
-    if (!mounted) return;
-    if (result['success'] == true) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profil berhasil diperbarui')),
+ 
+    try {
+      final result = await _service.updateProfile(
+        name: _nameCtrl.text.trim(),
+        email: _emailCtrl.text.trim(),
+        photoFile: _pickedPhoto,
       );
-      Navigator.pop(context, true); // sinyal ke ProfileScreen untuk reload
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result['message'] ?? 'Gagal menyimpan profil')),
-      );
+      if (!mounted) return;
+      if (result['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profil berhasil diperbarui')),
+        );
+        Navigator.pop(context, true);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['message'] ?? 'Gagal menyimpan profil')),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Tidak ada koneksi. Profil tidak tersimpan.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
@@ -101,25 +111,32 @@ class _EditProfileScreenState extends State<EditProfileScreen>
   Future<void> _savePassword() async {
     if (!_passwordFormKey.currentState!.validate()) return;
     setState(() => _isSaving = true);
-
-    final result = await _service.updatePassword(
-      oldPassword: _oldPassCtrl.text,
-      newPassword: _newPassCtrl.text,
-    );
-
-    setState(() => _isSaving = false);
-
-    if (!mounted) return;
-    final success = result['success'] == true;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(result['message'] ?? (success ? 'Password diperbarui' : 'Gagal')),
-        backgroundColor: success ? Colors.green : Colors.red,
-      ),
-    );
-    if (success) {
-      _oldPassCtrl.clear();
-      _newPassCtrl.clear();
+ 
+    try {
+      final result = await _service.updatePassword(
+        oldPassword: _oldPassCtrl.text,
+        newPassword: _newPassCtrl.text,
+      );
+      if (!mounted) return;
+      final success = result['success'] == true;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message'] ?? (success ? 'Password diperbarui' : 'Gagal')),
+          backgroundColor: success ? Colors.green : Colors.red,
+        ),
+      );
+      if (success) { _oldPassCtrl.clear(); _newPassCtrl.clear(); }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Tidak ada koneksi. Password tidak tersimpan.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 

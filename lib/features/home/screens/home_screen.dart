@@ -1,8 +1,7 @@
-// lib/features/home/screens/home_screen.dart
-
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
+import '../../../core/widgets/no_connection_widget.dart';      // ← baru
 import '../../../models/spot_model.dart';
 import '../../../core/widgets/spot_card.dart';
 import '../services/location_api_service.dart';
@@ -27,7 +26,6 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoadingSpots = true;
   String? _errorMessage;
 
-  // Kategori: index 0 selalu 'Semua', sisanya dari API
   List<String> _categories = [AppStrings.semua];
   bool _isLoadingKategoris = true;
 
@@ -41,7 +39,6 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _loadLocation();
     _loadKategoris();
-    // Home pakai item-based murni: sort by google_rating dari server
     _loadSpots();
   }
 
@@ -53,74 +50,89 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadLocation() async {
     setState(() => _isLoadingLocation = true);
-    final city = await LocationService().getCurrentCity();
-    if (mounted) {
-      setState(() {
-        _currentCity = city;
-        _isLoadingLocation = false;
-      });
+    try {
+      final city = await LocationService().getCurrentCity();
+      if (mounted) setState(() { _currentCity = city; _isLoadingLocation = false; });
+    } catch (_) {
+      if (mounted) setState(() { _currentCity = 'Lokasi tidak tersedia'; _isLoadingLocation = false; });
     }
   }
 
   Future<void> _loadKategoris() async {
-    final result = await _kategoriApiService.getKategoris();
-    if (!mounted) return;
+    // ← try-catch: jika gagal, gunakan fallback default (tidak stuck kosong)
+    try {
+      final result = await _kategoriApiService.getKategoris();
+      if (!mounted) return;
 
-    if (result['success'] == true) {
-      final List<dynamic> data = result['data'] ?? [];
-      setState(() {
-        _categories = [
-          AppStrings.semua,
-          ...data.map((k) => k['nama_kategori'].toString()),
-        ];
-        _isLoadingKategoris = false;
-      });
-    } else {
-      setState(() {
-        _categories = [AppStrings.semua, AppStrings.kafe, AppStrings.resto, AppStrings.outdoor];
-        _isLoadingKategoris = false;
-      });
+      if (result['success'] == true) {
+        final List<dynamic> data = result['data'] ?? [];
+        setState(() {
+          _categories = [
+            AppStrings.semua,
+            ...data.map((k) => k['nama_kategori'].toString()),
+          ];
+          _isLoadingKategoris = false;
+        });
+      } else {
+        // Server error → fallback ke default kategori agar UI tetap usable
+        setState(() {
+          _categories = [AppStrings.semua, AppStrings.kafe, AppStrings.resto, AppStrings.outdoor];
+          _isLoadingKategoris = false;
+        });
+      }
+    } catch (_) {
+      // Network error → fallback sama
+      if (mounted) {
+        setState(() {
+          _categories = [AppStrings.semua, AppStrings.kafe, AppStrings.resto, AppStrings.outdoor];
+          _isLoadingKategoris = false;
+        });
+      }
     }
   }
 
-  // Home: selalu sort=google_rating, tidak pakai CF sama sekali
   Future<void> _loadSpots({String? search, String? kategori}) async {
-    setState(() {
-      _isLoadingSpots = true;
-      _errorMessage = null;
-    });
+    setState(() { _isLoadingSpots = true; _errorMessage = null; });
 
-    final result = await _spotApiService.getSpots(
-      search: search,
-      kategori: kategori,
-      sort: 'google_rating', // ← item-based murni: ranking by google rating
-    );
+    // ← try-catch untuk network exception (SocketException, TimeoutException, dll.)
+    try {
+      final result = await _spotApiService.getSpots(
+        search: search,
+        kategori: kategori,
+        sort: 'google_rating',
+      );
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    if (result['success'] == true) {
-      final List<dynamic> data = result['data'] ?? [];
-      setState(() {
-        _spots = data.map((json) => SpotModel.fromJson(json)).toList();
-        _isLoadingSpots = false;
-      });
-    } else {
-      setState(() {
-        _errorMessage = result['message'] ?? 'Gagal memuat data.';
-        _isLoadingSpots = false;
-      });
+      if (result['success'] == true) {
+        final List<dynamic> data = result['data'] ?? [];
+        setState(() {
+          _spots = data.map((json) => SpotModel.fromJson(json)).toList();
+          _isLoadingSpots = false;
+        });
+      } else {
+        setState(() {
+          _errorMessage = result['message'] ?? 'Gagal memuat data.';
+          _isLoadingSpots = false;
+        });
+      }
+    } catch (_) {
+      // ← exception (SocketException, timeout) → set error message
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Tidak dapat terhubung ke server.\nPeriksa koneksi internetmu.';
+          _isLoadingSpots = false;
+        });
+      }
     }
   }
 
   List<SpotModel> get _filteredSpots {
     var spots = List<SpotModel>.from(_spots);
-
-    // Filter kategori di client (data sudah sorted dari server)
     if (_selectedCategoryIndex != 0) {
       final cat = _categories[_selectedCategoryIndex].toLowerCase();
       spots = spots.where((s) => s.kategoriUtama.toLowerCase() == cat).toList();
     }
-
     if (_searchQuery.isNotEmpty) {
       final q = _searchQuery.toLowerCase();
       spots = spots.where((s) {
@@ -130,7 +142,6 @@ class _HomeScreenState extends State<HomeScreen> {
             s.kategoris.any((t) => t.toLowerCase().contains(q));
       }).toList();
     }
-
     return spots;
   }
 
@@ -236,10 +247,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       if (_searchQuery.isNotEmpty)
                         GestureDetector(
-                          onTap: () {
-                            _searchCtrl.clear();
-                            setState(() => _searchQuery = '');
-                          },
+                          onTap: () { _searchCtrl.clear(); setState(() => _searchQuery = ''); },
                           child: const Padding(
                             padding: EdgeInsets.only(right: 12),
                             child: Icon(Icons.close_rounded, size: 18, color: AppColors.textHint),
@@ -251,7 +259,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            // Category Tabs — dari API
+            // Category Tabs
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.only(top: 16),
@@ -302,10 +310,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       _searchQuery.isNotEmpty
                           ? '${filtered.length} hasil untuk "$_searchQuery"'
                           : 'Terpopuler di Sekitarmu',
-                      style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary),
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
                     ),
                     if (_searchQuery.isEmpty)
                       GestureDetector(
@@ -327,22 +332,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               )
 
-            // Error State
+            // Error State ← sekarang pakai NoConnectionWidget
             else if (_errorMessage != null)
               SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 48),
-                  child: Column(
-                    children: [
-                      const Icon(Icons.wifi_off_rounded, size: 48, color: AppColors.textHint),
-                      const SizedBox(height: 12),
-                      Text(_errorMessage!,
-                          style: const TextStyle(fontSize: 14, color: AppColors.textHint),
-                          textAlign: TextAlign.center),
-                      const SizedBox(height: 16),
-                      TextButton(onPressed: _loadSpots, child: const Text('Coba Lagi')),
-                    ],
-                  ),
+                child: NoConnectionWidget(
+                  message: _errorMessage,
+                  onRetry: _loadSpots,
                 ),
               )
 
@@ -366,7 +361,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               )
 
-            // Spots List — diurutkan by google_rating dari server
+            // Spots List
             else
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),

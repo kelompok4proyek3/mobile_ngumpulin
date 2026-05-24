@@ -84,6 +84,6 @@ class AppStrings {
   static const String notifikasi = 'Notifikasi';
   static const String keamanan = 'Keamanan';
   static const String keluarAkun = 'Keluar Akun';
-
+  static const String Timer = '';
 
 }

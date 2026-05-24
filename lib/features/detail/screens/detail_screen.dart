@@ -1,5 +1,5 @@
 // lib/features/detail/screens/detail_screen.dart
-
+import '../../../../core/widgets/no_connection_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../models/spot_model.dart';
@@ -23,6 +23,7 @@ class _DetailScreenState extends State<DetailScreen> {
   bool _isLoadingSave = false;
   bool _isCheckingSaved = true;
   final _savedSpotService = SavedSpotApiService();
+  String? _ratingError;
 
   // ── Rating state ───────────────────────────────────────────────────────────
   final _ratingService = RatingApiService();
@@ -51,57 +52,67 @@ class _DetailScreenState extends State<DetailScreen> {
 
   // ── Load ratings dari API ──────────────────────────────────────────────────
   Future<void> _loadRatings() async {
-    setState(() => _isLoadingRatings = true);
+    setState(() {
+      _isLoadingRatings = true;
+      _ratingError = null;
+    });
+    try {
+      final result = await _ratingService.getRatingsBySpot(widget.spot.id);
+      if (!mounted) return;
 
-    final result = await _ratingService.getRatingsBySpot(widget.spot.id);
-
-    if (!mounted) return;
-
-    if (result['success'] == true) {
-      final data = result['data'] as Map<String, dynamic>;
-      final dist = (data['distribution'] as Map<String, dynamic>?) ?? {};
-
-      setState(() {
-        _avgScore = (data['avg_score'] as num?)?.toDouble() ?? 0;
-        _totalRating = (data['total_rating'] as int?) ?? 0;
-        _distribution = {
-          5: (dist['5'] as int?) ?? 0,
-          4: (dist['4'] as int?) ?? 0,
-          3: (dist['3'] as int?) ?? 0,
-          2: (dist['2'] as int?) ?? 0,
-          1: (dist['1'] as int?) ?? 0,
-        };
-        _ratings = List<Map<String, dynamic>>.from(
-          (data['ratings'] as List?) ?? [],
-        );
-      });
+      if (result['success'] == true) {
+        final data = result['data'] as Map<String, dynamic>;
+        final dist = (data['distribution'] as Map<String, dynamic>?) ?? {};
+        setState(() {
+          _avgScore = (data['avg_score'] as num?)?.toDouble() ?? 0;
+          _totalRating = (data['total_rating'] as int?) ?? 0;
+          _distribution = {
+            5: (dist['5'] as int?) ?? 0,
+            4: (dist['4'] as int?) ?? 0,
+            3: (dist['3'] as int?) ?? 0,
+            2: (dist['2'] as int?) ?? 0,
+            1: (dist['1'] as int?) ?? 0
+          };
+          _ratings =
+              List<Map<String, dynamic>>.from((data['ratings'] as List?) ?? []);
+        });
+      } else {
+        setState(
+            () => _ratingError = result['message'] ?? 'Gagal memuat ulasan.');
+      }
+    } catch (_) {
+      if (mounted) setState(() => _ratingError = 'Tidak ada koneksi internet.');
+    } finally {
+      if (mounted) setState(() => _isLoadingRatings = false);
     }
-
-    setState(() => _isLoadingRatings = false);
   }
 
   Future<void> _toggleSave() async {
     if (_isLoadingSave) return;
     setState(() => _isLoadingSave = true);
+    try {
+      final result = _isSaved
+          ? await _savedSpotService.deleteSavedSpot(widget.spot.id)
+          : await _savedSpotService.saveSpot(widget.spot.id);
 
-    final result = _isSaved
-        ? await _savedSpotService.deleteSavedSpot(widget.spot.id)
-        : await _savedSpotService.saveSpot(widget.spot.id);
+      if (!mounted) return;
 
-    if (!mounted) return;
-
-    if (result['success'] == true) {
-      setState(() => _isSaved = !_isSaved);
-      _showSnack(
-        _isSaved ? 'Spot disimpan ke daftar!' : 'Spot dihapus dari daftar.',
-        color: _isSaved ? AppColors.primary : AppColors.textSecondary,
-      );
-    } else {
-      _showSnack(result['message'] ?? 'Gagal, coba lagi.',
-          color: AppColors.error);
+      if (result['success'] == true) {
+        setState(() => _isSaved = !_isSaved);
+        _showSnack(
+          _isSaved ? 'Spot disimpan ke daftar!' : 'Spot dihapus dari daftar.',
+          color: _isSaved ? AppColors.primary : AppColors.textSecondary,
+        );
+      } else {
+        _showSnack(result['message'] ?? 'Gagal, coba lagi.',
+            color: AppColors.error);
+      }
+    } catch (_) {
+      if (mounted)
+        _showSnack('Tidak ada koneksi internet.', color: AppColors.error);
+    } finally {
+      if (mounted) setState(() => _isLoadingSave = false);
     }
-
-    setState(() => _isLoadingSave = false);
   }
 
   Future<void> _openGoogleMaps() async {
@@ -530,9 +541,31 @@ class _DetailScreenState extends State<DetailScreen> {
           const SizedBox(height: 16),
           if (_isLoadingRatings)
             const Center(
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
-                child: CircularProgressIndicator(color: AppColors.primary),
+                child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: CircularProgressIndicator(color: AppColors.primary),
+            ))
+          else if (_ratingError != null)
+            // ← error state inline di dalam card (bukan full-screen)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Column(
+                children: [
+                  const Icon(Icons.wifi_off_rounded,
+                      size: 32, color: AppColors.textHint),
+                  const SizedBox(height: 8),
+                  Text(_ratingError!,
+                      style: const TextStyle(
+                          fontSize: 13, color: AppColors.textHint),
+                      textAlign: TextAlign.center),
+                  const SizedBox(height: 12),
+                  TextButton.icon(
+                    onPressed: _loadRatings,
+                    icon: const Icon(Icons.refresh_rounded, size: 14),
+                    label: const Text('Muat Ulang',
+                        style: TextStyle(fontSize: 13)),
+                  ),
+                ],
               ),
             )
           else if (_totalRating == 0)
@@ -639,19 +672,19 @@ class _RatingItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user        = (data['user'] as Map<String, dynamic>?) ?? {};
-    final score       = (data['score'] as int?) ?? 0;
-    final name        = (user['name'] as String?) ?? 'Pengguna';
-    final fotoUrl     = user['foto_profile'] as String?;
-    final timeAgo     = (data['created_at'] as String?) ?? '';
-    final reviewText  = data['review_text'] as String?;
+    final user = (data['user'] as Map<String, dynamic>?) ?? {};
+    final score = (data['score'] as int?) ?? 0;
+    final name = (user['name'] as String?) ?? 'Pengguna';
+    final fotoUrl = user['foto_profile'] as String?;
+    final timeAgo = (data['created_at'] as String?) ?? '';
+    final reviewText = data['review_text'] as String?;
     // Baca foto_urls sebagai array; fallback ke foto_url kalau masih single
     final reviewFotos = (data['foto_urls'] as List?)
             ?.map((e) => e.toString())
             .where((e) => e.isNotEmpty)
             .toList() ??
         (data['foto_url'] != null ? [data['foto_url'].toString()] : []);
-    final initial     = name.isNotEmpty ? name[0].toUpperCase() : '?';
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
@@ -667,7 +700,8 @@ class _RatingItem extends StatelessWidget {
                   CircleAvatar(
                     radius: 18,
                     backgroundColor: AppColors.primary.withOpacity(0.15),
-                    backgroundImage: fotoUrl != null ? NetworkImage(fotoUrl) : null,
+                    backgroundImage:
+                        fotoUrl != null ? NetworkImage(fotoUrl) : null,
                     child: fotoUrl == null
                         ? Text(initial,
                             style: const TextStyle(
@@ -751,7 +785,9 @@ class _RatingItem extends StatelessWidget {
                             ? child
                             : Container(
                                 height: 160,
-                                width: reviewFotos.length == 1 ? double.infinity : 200,
+                                width: reviewFotos.length == 1
+                                    ? double.infinity
+                                    : 200,
                                 color: AppColors.primaryLight,
                                 child: const Center(
                                   child: CircularProgressIndicator(

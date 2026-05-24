@@ -108,4 +108,14 @@ class AuthApiService {
       };
     }
   }
+
+Future<Map<String, dynamic>> deleteUnverifiedAccount({required String email}) async {
+  try {
+    final response = await _dio.delete('/auth/delete-unverified', data: {'email': email});
+    return response.data;
+  } on DioException catch (e) {
+    if (e.response != null) return e.response!.data;
+    return {'success': false, 'message': 'Tidak dapat terhubung ke server.'};
+  }
+}
 }
